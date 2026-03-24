@@ -10,6 +10,7 @@
 
 #define SCREEN_RES_HOR 360
 #define SCREEN_RES_VER 360
+#define DEFAULT_UI_BRIGHTNESS_PERCENT 30
 
 #define EXAMPLE_TOUCH_I2C_SCL_PULLUP    (1)  // 0/1
 #define EXAMPLE_TOUCH_I2C_SDA_PULLUP    (1)  // 0/1
@@ -462,8 +463,8 @@ void scr_lvgl_init()
   // setRotation(0);  //设置屏幕方向
   lcd->displayOn();
 
+  backlight->setBrightness(DEFAULT_UI_BRIGHTNESS_PERCENT);
   screen_switch(true);
-  backlight->setBrightness(100); // 设置亮度
 
   size_t lv_cache_rows = 72;
 
