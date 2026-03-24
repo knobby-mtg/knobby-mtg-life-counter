@@ -80,6 +80,7 @@ The main screen shall expose the following touch targets:
 - Tap life display area: open commander damage player selection
 - Tap top-center icon: open settings
 - Tap bottom-center circular button: open the main radial-style menu
+- Upward swipe with vertical movement greater than `80` pixels and horizontal drift less than `90` pixels: open the main radial-style menu
 - Tap turn widget, when visible: advance the turn counter and restart turn timing from the current moment
 
 ## 5. Main Menu
@@ -254,9 +255,9 @@ Multiplayer life changes shall use a deferred commit preview similar to the main
 - Multiplayer life totals are clamped to `-999..999`
 - If the selected player changes while another player's preview is pending, the previous preview is committed immediately
 
-### 11.4 Exit gesture
+### 11.4 Menu gesture
 
-- A downward swipe with vertical movement greater than `80` pixels and horizontal drift less than `90` pixels shall return to the main screen
+- An upward swipe with vertical movement greater than `80` pixels and horizontal drift less than `90` pixels shall open the selected player's menu
 
 ## 12. Multiplayer Player Menu
 
@@ -267,6 +268,7 @@ The player menu shall provide:
 - `rename`
 - `Cmd.dmg`
 - `all.dmg`
+- `main`
 - `back`
 
 ## 13. Multiplayer Rename Flow

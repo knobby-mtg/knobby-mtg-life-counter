@@ -169,9 +169,11 @@ static int multiplayer_cmd_target_choices[MULTIPLAYER_COUNT - 1] = {-1, -1, -1};
 static int multiplayer_cmd_damage_totals[MULTIPLAYER_COUNT][MULTIPLAYER_COUNT] = {{0}};
 static int multiplayer_all_damage_value = 0;
 static bool multiplayer_swipe_tracking = false;
+static bool main_swipe_tracking = false;
 static int multiplayer_pending_life_delta = 0;
 static int multiplayer_preview_player = -1;
 static bool multiplayer_life_preview_active = false;
+static lv_point_t main_swipe_start = {0, 0};
 static lv_point_t multiplayer_swipe_start = {0, 0};
 static char multiplayer_names[MULTIPLAYER_COUNT][16] = {"P1", "P2", "P3", "P4"};
 
@@ -1394,6 +1396,31 @@ static void event_show_main_menu(lv_event_t *e)
     show_main_menu();
 }
 
+static void event_main_swipe_menu(lv_event_t *e)
+{
+    lv_point_t point;
+    lv_indev_t *indev = lv_indev_get_act();
+
+    if (indev == NULL) return;
+    if ((menu_overlay != NULL) && !lv_obj_has_flag(menu_overlay, LV_OBJ_FLAG_HIDDEN)) return;
+
+    if (lv_event_get_code(e) == LV_EVENT_PRESSED) {
+        lv_indev_get_point(indev, &main_swipe_start);
+        main_swipe_tracking = true;
+        return;
+    }
+
+    if (lv_event_get_code(e) == LV_EVENT_RELEASED && main_swipe_tracking) {
+        main_swipe_tracking = false;
+        lv_indev_get_point(indev, &point);
+
+        if ((main_swipe_start.y - point.y) > 80 &&
+            LV_ABS(point.x - main_swipe_start.x) < 90) {
+            show_main_menu();
+        }
+    }
+}
+
 static void event_hide_main_menu(lv_event_t *e)
 {
     (void)e;
@@ -1493,7 +1520,7 @@ static void event_multiplayer_open_menu(lv_event_t *e)
     open_multiplayer_menu_screen(multiplayer_selected);
 }
 
-static void event_multiplayer_exit(lv_event_t *e)
+static void event_multiplayer_swipe_menu(lv_event_t *e)
 {
     lv_point_t point;
     lv_indev_t *indev = lv_indev_get_act();
@@ -1510,9 +1537,9 @@ static void event_multiplayer_exit(lv_event_t *e)
         multiplayer_swipe_tracking = false;
         lv_indev_get_point(indev, &point);
 
-        if ((point.y - multiplayer_swipe_start.y) > 80 &&
+        if ((multiplayer_swipe_start.y - point.y) > 80 &&
             LV_ABS(point.x - multiplayer_swipe_start.x) < 90) {
-            back_to_main();
+            open_multiplayer_menu_screen(multiplayer_selected);
         }
     }
 }
@@ -1521,6 +1548,12 @@ static void event_multiplayer_menu_back(lv_event_t *e)
 {
     (void)e;
     open_multiplayer_screen();
+}
+
+static void event_multiplayer_menu_main(lv_event_t *e)
+{
+    (void)e;
+    back_to_main();
 }
 
 static void event_multiplayer_menu_rename(lv_event_t *e)
@@ -1682,8 +1715,8 @@ static void build_multiplayer_screen()
     lv_obj_set_style_bg_color(screen_multiplayer, lv_color_black(), 0);
     lv_obj_set_style_border_width(screen_multiplayer, 0, 0);
     lv_obj_set_scrollbar_mode(screen_multiplayer, LV_SCROLLBAR_MODE_OFF);
-    lv_obj_add_event_cb(screen_multiplayer, event_multiplayer_exit, LV_EVENT_PRESSED, NULL);
-    lv_obj_add_event_cb(screen_multiplayer, event_multiplayer_exit, LV_EVENT_RELEASED, NULL);
+    lv_obj_add_event_cb(screen_multiplayer, event_multiplayer_swipe_menu, LV_EVENT_PRESSED, NULL);
+    lv_obj_add_event_cb(screen_multiplayer, event_multiplayer_swipe_menu, LV_EVENT_RELEASED, NULL);
 
     for (i = 0; i < MULTIPLAYER_COUNT; i++) {
         multiplayer_quadrants[i] = lv_btn_create(screen_multiplayer);
@@ -1724,17 +1757,20 @@ static void build_multiplayer_menu_screen()
     lv_obj_set_style_text_font(label_multiplayer_menu_title, &lv_font_montserrat_22, 0);
     lv_obj_align(label_multiplayer_menu_title, LV_ALIGN_TOP_MID, 0, 26);
 
-    lv_obj_t *btn = make_button(screen_multiplayer_menu, "rename", 180, 46, event_multiplayer_menu_rename);
-    lv_obj_align(btn, LV_ALIGN_CENTER, 0, -36);
+    lv_obj_t *btn = make_button(screen_multiplayer_menu, "rename", 180, 44, event_multiplayer_menu_rename);
+    lv_obj_align(btn, LV_ALIGN_CENTER, 0, -56);
 
-    btn = make_button(screen_multiplayer_menu, "Cmd.dmg", 180, 46, event_multiplayer_menu_cmd_damage);
-    lv_obj_align(btn, LV_ALIGN_CENTER, 0, 24);
+    btn = make_button(screen_multiplayer_menu, "Cmd.dmg", 180, 44, event_multiplayer_menu_cmd_damage);
+    lv_obj_align(btn, LV_ALIGN_CENTER, 0, -4);
 
-    btn = make_button(screen_multiplayer_menu, "all.dmg", 180, 46, event_multiplayer_menu_all_damage);
-    lv_obj_align(btn, LV_ALIGN_CENTER, 0, 84);
+    btn = make_button(screen_multiplayer_menu, "all.dmg", 180, 44, event_multiplayer_menu_all_damage);
+    lv_obj_align(btn, LV_ALIGN_CENTER, 0, 48);
 
-    btn = make_button(screen_multiplayer_menu, "back", 120, 46, event_multiplayer_menu_back);
-    lv_obj_align(btn, LV_ALIGN_BOTTOM_MID, 0, -26);
+    btn = make_button(screen_multiplayer_menu, "main", 88, 42, event_multiplayer_menu_main);
+    lv_obj_align(btn, LV_ALIGN_BOTTOM_LEFT, 34, -26);
+
+    btn = make_button(screen_multiplayer_menu, "back", 88, 42, event_multiplayer_menu_back);
+    lv_obj_align(btn, LV_ALIGN_BOTTOM_RIGHT, -34, -26);
 }
 
 static void build_multiplayer_name_screen()
@@ -1872,6 +1908,8 @@ static void build_main_screen()
     lv_obj_set_style_bg_color(screen_main, lv_color_black(), 0);
     lv_obj_set_style_border_width(screen_main, 0, 0);
     lv_obj_set_scrollbar_mode(screen_main, LV_SCROLLBAR_MODE_OFF);
+    lv_obj_add_event_cb(screen_main, event_main_swipe_menu, LV_EVENT_PRESSED, NULL);
+    lv_obj_add_event_cb(screen_main, event_main_swipe_menu, LV_EVENT_RELEASED, NULL);
 
     arc_life = lv_arc_create(screen_main);
     lv_obj_set_size(arc_life, 360, 360);
