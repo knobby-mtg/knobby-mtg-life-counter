@@ -1802,20 +1802,24 @@ static void build_multiplayer_menu_screen()
     lv_obj_set_style_text_font(label_multiplayer_menu_title, &lv_font_montserrat_22, 0);
     lv_obj_align(label_multiplayer_menu_title, LV_ALIGN_TOP_MID, 0, 26);
 
-    button_multiplayer_menu_rename = make_button(screen_multiplayer_menu, "rename", 180, 44, event_multiplayer_menu_rename);
+    button_multiplayer_menu_rename = make_button(screen_multiplayer_menu, "Rename", 180, 44, event_multiplayer_menu_rename);
     lv_obj_align(button_multiplayer_menu_rename, LV_ALIGN_CENTER, 0, -56);
 
-    button_multiplayer_menu_cmd_damage = make_button(screen_multiplayer_menu, "Cmd.dmg", 180, 44, event_multiplayer_menu_cmd_damage);
+    button_multiplayer_menu_cmd_damage = make_button(screen_multiplayer_menu, "Commander", 180, 44, event_multiplayer_menu_cmd_damage);
     lv_obj_align(button_multiplayer_menu_cmd_damage, LV_ALIGN_CENTER, 0, -4);
 
-    button_multiplayer_menu_all_damage = make_button(screen_multiplayer_menu, "all.dmg", 180, 44, event_multiplayer_menu_all_damage);
+    button_multiplayer_menu_all_damage = make_button(screen_multiplayer_menu, "Global", 180, 44, event_multiplayer_menu_all_damage);
     lv_obj_align(button_multiplayer_menu_all_damage, LV_ALIGN_CENTER, 0, -4);
 
-    button_multiplayer_menu_menu = make_button(screen_multiplayer_menu, "menu", 88, 42, event_multiplayer_menu_main);
-    lv_obj_align(button_multiplayer_menu_menu, LV_ALIGN_BOTTOM_LEFT, 34, -26);
+    button_multiplayer_menu_menu = make_button(screen_multiplayer_menu, "Main", 88, 42, event_multiplayer_menu_main);
+    lv_obj_set_style_radius(button_multiplayer_menu_menu, LV_RADIUS_CIRCLE, 0);
+    lv_obj_set_style_pad_all(button_multiplayer_menu_menu, 0, 0);
+    lv_obj_align(button_multiplayer_menu_menu, LV_ALIGN_CENTER, -148, -4);
 
-    button_multiplayer_menu_back = make_button(screen_multiplayer_menu, "back", 88, 42, event_multiplayer_menu_back);
-    lv_obj_align(button_multiplayer_menu_back, LV_ALIGN_BOTTOM_RIGHT, -34, -26);
+    button_multiplayer_menu_back = make_button(screen_multiplayer_menu, "Back", 88, 42, event_multiplayer_menu_back);
+    lv_obj_set_style_radius(button_multiplayer_menu_back, LV_RADIUS_CIRCLE, 0);
+    lv_obj_set_style_pad_all(button_multiplayer_menu_back, 0, 0);
+    lv_obj_align(button_multiplayer_menu_back, LV_ALIGN_CENTER, 148, -4);
 
     refresh_multiplayer_menu_ui();
 }
@@ -2125,26 +2129,26 @@ static void build_main_screen()
     lv_obj_set_scrollbar_mode(menu_panel, LV_SCROLLBAR_MODE_OFF);
     lv_obj_clear_flag(menu_panel, LV_OBJ_FLAG_CLICKABLE);
 
-    btn = make_button(menu_overlay, "reset", 50, 50, event_menu_reset);
-    lv_obj_set_style_radius(btn, LV_RADIUS_CIRCLE, 0);
-    lv_obj_set_style_pad_all(btn, 0, 0);
-    lv_obj_align(btn, LV_ALIGN_CENTER, -148, -4);
+    reset_btn = make_button(menu_overlay, "Reset", 50, 50, event_menu_reset);
+    lv_obj_set_style_radius(reset_btn, LV_RADIUS_CIRCLE, 0);
+    lv_obj_set_style_pad_all(reset_btn, 0, 0);
+    lv_obj_align(reset_btn, LV_ALIGN_CENTER, -148, -4);
 
-    btn = make_button(menu_overlay, "back", 50, 50, event_menu_back);
-    lv_obj_set_style_radius(btn, LV_RADIUS_CIRCLE, 0);
-    lv_obj_set_style_pad_all(btn, 0, 0);
-    lv_obj_align(btn, LV_ALIGN_CENTER, 148, -4);
+    back_btn = make_button(menu_overlay, "Back", 50, 50, event_menu_back);
+    lv_obj_set_style_radius(back_btn, LV_RADIUS_CIRCLE, 0);
+    lv_obj_set_style_pad_all(back_btn, 0, 0);
+    lv_obj_align(back_btn, LV_ALIGN_CENTER, 148, -4);
 
-    btn = make_button(menu_panel, "Cmd.dmg", 128, 32, event_menu_cmd_damage);
-    lv_obj_align(btn, LV_ALIGN_TOP_MID, 0, 36);
+    commander_btn = make_button(menu_panel, "Commander", 128, 32, event_menu_cmd_damage);
+    lv_obj_align(commander_btn, LV_ALIGN_TOP_MID, 0, 36);
 
-    menu_button_dice = make_button(menu_panel, "d20", 128, 32, event_menu_dice);
+    menu_button_dice = make_button(menu_panel, "D20", 128, 32, event_menu_dice);
     lv_obj_align(menu_button_dice, LV_ALIGN_TOP_MID, 0, 82);
 
-    menu_button_multiplayer = make_button(menu_panel, "multiplayer", 128, 32, event_menu_multiplayer);
+    menu_button_multiplayer = make_button(menu_panel, "Multiplayer", 128, 32, event_menu_multiplayer);
     lv_obj_align(menu_button_multiplayer, LV_ALIGN_TOP_MID, 0, 128);
 
-    menu_button_timer = make_button(menu_panel, "timer", 128, 32, event_menu_turn_timer);
+    menu_button_timer = make_button(menu_panel, "Timer", 128, 32, event_menu_turn_timer);
     lv_obj_align(menu_button_timer, LV_ALIGN_TOP_MID, 0, 174);
 }
 

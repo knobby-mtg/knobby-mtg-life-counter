@@ -91,7 +91,7 @@ The main menu shall appear as an overlay over the main screen.
 
 - `reset`: restore all gameplay and UI state to defaults
 - `back`: close the menu and return to the main screen
-- `Cmd.dmg`: open commander damage target selection
+- `Commander`: open commander damage target selection
 - `d20`: roll a 20-sided die and open the dice screen
 - `multiplayer`: open four-player mode
 - `timer`: start a fresh turn timer session
@@ -265,9 +265,9 @@ Long-pressing a multiplayer quadrant shall open that player's menu.
 
 The player menu shall provide:
 
-- `rename`
-- `Cmd.dmg`
-- `back`
+- `Rename`
+- `Commander`
+- `Back`
 
 ## 13. Multiplayer Global Menu
 
@@ -275,11 +275,11 @@ Swiping upward on the multiplayer overview shall open the multiplayer global men
 
 The global menu shall provide:
 
-- `all.dmg`
-- `back`
-- `menu`
+- `Global`
+- `Back`
+- `Main`
 
-Selecting `menu` shall return to the main screen and reopen the main overlay menu.
+Selecting `Main` shall return to the main screen and reopen the main overlay menu.
 
 ## 14. Multiplayer Rename Flow
 
@@ -303,7 +303,7 @@ The multiplayer commander damage flow is organized around the currently opened p
 
 ### 14.1 Victim-first selection model
 
-- Opening `Cmd.dmg` from a player's menu treats that menu player as the damage recipient
+- Opening `Commander` from a player's menu treats that menu player as the damage recipient
 - The next screen lists all other players as possible sources of commander damage
 - Each row displays the other player's name and the current stored damage total from that source to the selected recipient
 
