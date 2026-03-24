@@ -5,6 +5,8 @@
 #include <lvgl.h>
 #include <ESP_IOExpander_Library.h>
 #include <ESP_Panel_Library.h>
+#include "esp_heap_caps.h"
+#include "esp_log.h"
 // #include "bidi_switch_knob.h"
 #include "knob.h"
 
@@ -18,11 +20,14 @@
 #define CONFIG_KNOB_HIGH_LIMIT     1
 #define CONFIG_KNOB_LOW_LIMIT      1
 
+static const char *SCR_TAG = "scr_st77916";
+
 static lv_color_t *disp_draw_buf;
 static lv_disp_draw_buf_t draw_buf;
 static lv_disp_drv_t disp_drv;
 static lv_indev_t *indev_touchpad;
 lv_indev_t *indev_knob;
+static bool disp_flush_uses_callback = false;
 static ESP_PanelBacklightPWM_LEDC *backlight = NULL;
 static ESP_PanelLcd *lcd = NULL;
 static ESP_PanelTouch *touch = NULL;
@@ -232,16 +237,31 @@ const esp_lcd_panel_vendor_init_cmd_t lcd_init_cmd[] = {
 static void my_disp_flush(lv_disp_drv_t *disp, const lv_area_t *area, lv_color_t *color_p)
 {
   ESP_PanelLcd *lcd = (ESP_PanelLcd *)disp->user_data;
+
+  if (disp == NULL || area == NULL || color_p == NULL || lcd == NULL) {
+    if (disp != NULL) {
+      lv_disp_flush_ready(disp);
+    }
+    return;
+  }
+
   const int offsetx1 = area->x1;
   const int offsetx2 = area->x2;
   const int offsety1 = area->y1;
   const int offsety2 = area->y2;
   lcd->drawBitmap(offsetx1, offsety1, offsetx2 - offsetx1 + 1, offsety2 - offsety1 + 1, (const uint8_t *)color_p);
+
+  if (!disp_flush_uses_callback) {
+    lv_disp_flush_ready(disp);
+  }
 }
 
 IRAM_ATTR bool onRefreshFinishCallback(void *user_data)
 {
   lv_disp_drv_t *drv = (lv_disp_drv_t *)user_data;
+  if (drv == NULL) {
+    return false;
+  }
   lv_disp_flush_ready(drv);
   return false;
 }
@@ -408,6 +428,10 @@ static lv_indev_t *indev_init(ESP_PanelTouch *tp)
 
 void scr_lvgl_init()
 {
+  lv_disp_t *disp;
+  size_t lv_cache_rows = 72;
+  size_t draw_buffer_size;
+
   ledc_timer_config_t ledc_timer = {
       .speed_mode = LEDC_LOW_SPEED_MODE,
       .duty_resolution = LEDC_TIMER_13_BIT,
@@ -466,10 +490,14 @@ void scr_lvgl_init()
   backlight->setBrightness(DEFAULT_UI_BRIGHTNESS_PERCENT);
   screen_switch(true);
 
-  size_t lv_cache_rows = 72;
-
-  disp_draw_buf = (lv_color_t *)heap_caps_malloc(lv_cache_rows * SCREEN_RES_HOR * 2, MALLOC_CAP_INTERNAL | MALLOC_CAP_8BIT);
   lv_init();
+  draw_buffer_size = lv_cache_rows * SCREEN_RES_HOR * sizeof(lv_color_t);
+  disp_draw_buf = (lv_color_t *)heap_caps_malloc(draw_buffer_size, MALLOC_CAP_INTERNAL | MALLOC_CAP_8BIT);
+  if (disp_draw_buf == NULL) {
+    ESP_LOGE(SCR_TAG, "LVGL draw buffer allocation failed (%u bytes)", (unsigned int)draw_buffer_size);
+    return;
+  }
+
   lv_disp_draw_buf_init(&draw_buf, disp_draw_buf, NULL, SCREEN_RES_HOR * lv_cache_rows);
 
   lv_disp_drv_init(&disp_drv);
@@ -478,12 +506,20 @@ void scr_lvgl_init()
   disp_drv.flush_cb = my_disp_flush;
   disp_drv.draw_buf = &draw_buf;
   disp_drv.user_data = (void *)lcd;
-  lv_disp_t *disp = lv_disp_drv_register(&disp_drv);
+  disp = lv_disp_drv_register(&disp_drv);
+  if (disp == NULL) {
+    ESP_LOGE(SCR_TAG, "LVGL display driver registration failed");
+    heap_caps_free(disp_draw_buf);
+    disp_draw_buf = NULL;
+    return;
+  }
 
+  disp_flush_uses_callback = false;
   if (lcd->getBus()->getType() != ESP_PANEL_BUS_TYPE_RGB)
   {
     // lcd->attachRefreshFinishCallback(onRefreshFinishCallback, (void *)disp->driver);attachDrawBitmapFinishCallback
     lcd->attachDrawBitmapFinishCallback(onRefreshFinishCallback, (void *)disp->driver);
+    disp_flush_uses_callback = true;
   }
   indev_touchpad = indev_init(touch);
 

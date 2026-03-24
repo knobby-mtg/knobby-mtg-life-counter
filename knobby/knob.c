@@ -1,6 +1,7 @@
 #include "knob.h"
 #include "driver/ledc.h"
 #include "esp_random.h"
+#include "freertos/FreeRTOS.h"
 #include <stdint.h>
 #include <stdio.h>
 #include <string.h>
@@ -154,6 +155,7 @@ static bool knob_initialized = false;
 static knob_input_event_t knob_event_queue[KNOB_EVENT_QUEUE_SIZE];
 static volatile uint8_t knob_event_head = 0;
 static volatile uint8_t knob_event_tail = 0;
+static portMUX_TYPE knob_event_queue_lock = portMUX_INITIALIZER_UNLOCKED;
 
 static bool turn_timer_enabled = false;
 static bool turn_indicator_visible = true;
@@ -1299,9 +1301,17 @@ static void intro_timer_cb(lv_timer_t *timer)
 // navigation
 // ----------------------------------------------------
 
+static void flush_knob_input_queue(void)
+{
+    taskENTER_CRITICAL(&knob_event_queue_lock);
+    knob_event_tail = knob_event_head;
+    taskEXIT_CRITICAL(&knob_event_queue_lock);
+}
+
 static void load_screen_if_needed(lv_obj_t *screen)
 {
     if (screen != NULL && lv_scr_act() != screen) {
+        flush_knob_input_queue();
         lv_scr_load(screen);
     }
 }
@@ -2389,6 +2399,7 @@ void knob_change(knob_event_t k, int cont)
 
     last_knob_cont = cont;
 
+    taskENTER_CRITICAL(&knob_event_queue_lock);
     next_head = (uint8_t)((knob_event_head + 1U) % KNOB_EVENT_QUEUE_SIZE);
     if (next_head == knob_event_tail) {
         knob_event_tail = (uint8_t)((knob_event_tail + 1U) % KNOB_EVENT_QUEUE_SIZE);
@@ -2397,15 +2408,26 @@ void knob_change(knob_event_t k, int cont)
     knob_event_queue[knob_event_head].event = k;
     knob_event_queue[knob_event_head].cont = cont;
     knob_event_head = next_head;
+    taskEXIT_CRITICAL(&knob_event_queue_lock);
 }
 
 void knob_process_pending(void)
 {
     uint8_t processed = 0;
 
-    while (knob_event_tail != knob_event_head && processed < 8U) {
-        knob_event_t event = knob_event_queue[knob_event_tail].event;
+    while (processed < 8U) {
+        knob_event_t event;
+
+        taskENTER_CRITICAL(&knob_event_queue_lock);
+        if (knob_event_tail == knob_event_head) {
+            taskEXIT_CRITICAL(&knob_event_queue_lock);
+            break;
+        }
+
+        event = knob_event_queue[knob_event_tail].event;
         knob_event_tail = (uint8_t)((knob_event_tail + 1U) % KNOB_EVENT_QUEUE_SIZE);
+        taskEXIT_CRITICAL(&knob_event_queue_lock);
+
         handle_knob_event(event);
         processed++;
     }
