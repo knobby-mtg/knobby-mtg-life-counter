@@ -255,18 +255,11 @@ Current application behavior uses the `knob.c` brightness path for user adjustme
 
 ## 11. Commander Damage Data Model
 
-Two different commander-damage representations exist:
+Commander damage is stored only in the multiplayer data model.
 
-- Single-player commander damage: three totals in `enemies[]`
-- Multiplayer commander damage: a full `4 x 4` source-to-target matrix
-
-### 11.1 Single-player mapping rule
-
-Single-player commander damage names are optionally derived from multiplayer names if one multiplayer player is named exactly `m`.
-
-### 11.2 Multiplayer mapping rule
-
-In multiplayer mode, commander damage is stored as `damage[source][target]`.
+- Representation: a full `4 x 4` source-to-target matrix
+- Meaning: `damage[source][target]`
+- Initial value: all entries start at `0`
 
 When the player menu for target `T` opens commander-damage selection:
 
@@ -279,16 +272,13 @@ When the player menu for target `T` opens commander-damage selection:
 The multiplayer overview uses one menu screen implementation with two interaction modes.
 
 - Long-press on quadrant `Q` opens the player menu for player `Q`
-- The player menu exposes `rename`, `Cmd.dmg`, and `back`
+- The player menu exposes `Rename`, `Commander`, and `Back`
 - Upward swipe on the multiplayer overview opens the global multiplayer menu
-- The global menu exposes `all.dmg`, `back`, and `menu`
-- Selecting `menu` returns to the main screen and reopens the main overlay menu
+- The global menu exposes `Global`, `Settings`, `Reset`, and `Back`
+- Selecting `Settings` opens the settings screen
+- Selecting `Reset` restores in-memory defaults and returns to the multiplayer overview
 
-## 13. Randomness
-
-The d20 feature uses `esp_random()` and maps it into the range `1..20` with modulo arithmetic.
-
-## 14. Reset Model
+## 13. Reset Model
 
 The global reset path restores in-memory state only. It does not:
 
@@ -301,11 +291,9 @@ The global reset path restores in-memory state only. It does not:
 
 These are not recommendations; they are current-system characteristics that any future change should evaluate explicitly.
 
-- No persistent storage for brightness, names, timer, or scores
-- No dedicated pause/resume control for the turn timer
+- No persistent storage for brightness, names, or gameplay values
 - No encoder push-button behavior in the UI flow
 - No confirmation step before global reset
-- Single-player commander damage target naming depends on a special multiplayer name value `m`
 - Battery percentage is only an estimate based on a hard-coded voltage curve and uncalibrated constants
 
 ## 15. Source of Truth

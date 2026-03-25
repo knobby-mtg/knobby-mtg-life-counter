@@ -16,26 +16,24 @@ Firmware for a compact life counter built for round ESP32-S3 knob display boards
 
 ## Overview
 
-Knobby is a non-commercial hobby project for tabletop games such as Magic: The Gathering. This fork narrows the project to multiplayer commander play and treats the original broader utility features as legacy behavior.
+Knobby is a non-commercial hobby project for tabletop games such as Magic: The Gathering. This fork is now a multiplayer-only commander life counter and no longer includes the upstream single-player, timer, or d20 utility flows.
 
 Hardware assumptions, pin mappings, and platform details are documented in [docs/specifications/system-spec.md](./docs/specifications/system-spec.md).
 
 ## Fork Direction
 
-- Focus on multiplayer commander support for `2` to `4` players
+- Focus on multiplayer commander support on a shared pod-tracking screen
 - Keep multiplayer life totals and commander-damage tracking as the core experience
 - Add commander tax tracking as a first-class game action
 - Simplify the UI around multiplayer-only flows
-- Remove single-player functionality from the product direction
-- Remove auxiliary features such as the timer and d20 roller
 
-## Planned Scope
+## Current Behavior
 
-- Multiplayer-only game flow
-- Commander damage between players
-- Commander tax tracking
-- Support for pods from `2` to `4` players
-- Touch and rotary input tuned for multiplayer interactions
+- Boot into the intro screen, then transition directly to the multiplayer overview
+- Track life totals for four players on one screen
+- Support commander damage tracking between players
+- Support global damage application, player renaming, brightness control, and battery estimate display
+- Exclude single-player, timer, and d20 flows from the shipped UI
 
 ## Out of Scope
 
@@ -66,13 +64,13 @@ arduino-cli upload -p <PORT> --fqbn esp32:esp32:esp32s3 ./knobby
 
 ## Notes
 
-- The current codebase still contains legacy features from the upstream project
-- This README reflects the intended direction of this fork, not a claim that every planned change is already implemented
+- The current codebase is intentionally scoped to the multiplayer-only fork direction
+- Upstream history may still reference removed features, but they are no longer part of the current firmware behavior
 - Current implementation details are documented in [docs/specifications/functional-spec.md](./docs/specifications/functional-spec.md)
 
 ## Current Limitations
 
-- The multiplayer commander-focused fork scope is not fully implemented yet
+- The current firmware is built around a fixed four-player layout
 - Battery percentage is an estimate based on a fixed voltage curve
 - State is not persisted across reboots
 - LVGL compatibility is intentionally conservative; upgrading beyond 8.4.x will require code changes

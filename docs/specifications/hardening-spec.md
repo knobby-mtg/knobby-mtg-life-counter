@@ -169,7 +169,7 @@ Each workstream shall include both code-level verification and hardware behavior
 
 ### 6.2 Hardware verification
 
-- Verify successful boot to intro and main screen on target hardware
+- Verify successful boot to the intro screen followed by the multiplayer overview on target hardware
 - Verify controlled behavior when the encoder is turned rapidly in both directions
 - Verify brightness adjustment remains responsive on the settings screen
 - Verify commander damage and multiplayer life adjustments still map one encoder step to one logical value change

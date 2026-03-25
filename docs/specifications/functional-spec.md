@@ -93,7 +93,7 @@ The rename screen shall:
 - Provide a one-line text area
 - Limit names to `15` characters
 - Provide an on-screen keyboard
-- Provide `save` and `back` buttons
+- Provide `Save` and `Back` buttons
 
 Saving shall behave as follows:
 
@@ -132,13 +132,13 @@ The all-damage screen shall:
 
 - Start with pending damage value `0`
 - Allow knob-based adjustment with a floor at `0`
-- Provide `apply` and `back` buttons
+- Provide `Apply` and `Back` buttons
 
 The all-damage flow shall be entered from the multiplayer global menu.
 
-Selecting `back` on the all-damage screen shall return to the multiplayer global menu.
+Selecting `Back` on the all-damage screen shall return to the multiplayer global menu.
 
-Selecting `apply` shall subtract the pending damage value from all four players immediately.
+Selecting `Apply` shall subtract the pending damage value from all four players immediately.
 
 ## 9. Settings Screen
 
