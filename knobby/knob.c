@@ -1365,12 +1365,16 @@ static void load_screen_if_needed(lv_obj_t *screen)
 
 static void open_select_screen()
 {
+    life_preview_commit_cb(NULL);
+    multiplayer_life_preview_commit_cb(NULL);
     refresh_select_ui();
     load_screen_if_needed(screen_select);
 }
 
 static void open_damage_screen(int enemy_index)
 {
+    life_preview_commit_cb(NULL);
+    multiplayer_life_preview_commit_cb(NULL);
     selected_enemy = enemy_index;
     refresh_damage_ui();
     load_screen_if_needed(screen_damage);
@@ -1378,6 +1382,8 @@ static void open_damage_screen(int enemy_index)
 
 static void open_settings_screen()
 {
+    life_preview_commit_cb(NULL);
+    multiplayer_life_preview_commit_cb(NULL);
     update_battery_measurement(true);
     refresh_settings_ui();
     load_screen_if_needed(screen_settings);
@@ -1385,12 +1391,16 @@ static void open_settings_screen()
 
 static void open_multiplayer_screen()
 {
+    life_preview_commit_cb(NULL);
+    multiplayer_life_preview_commit_cb(NULL);
     refresh_multiplayer_ui();
     load_screen_if_needed(screen_multiplayer);
 }
 
 static void open_multiplayer_menu_screen(int player_index, multiplayer_menu_mode_t mode)
 {
+    life_preview_commit_cb(NULL);
+    multiplayer_life_preview_commit_cb(NULL);
     multiplayer_menu_player = player_index;
     multiplayer_menu_mode = mode;
     refresh_multiplayer_menu_ui();
@@ -1399,18 +1409,24 @@ static void open_multiplayer_menu_screen(int player_index, multiplayer_menu_mode
 
 static void open_multiplayer_name_screen(void)
 {
+    life_preview_commit_cb(NULL);
+    multiplayer_life_preview_commit_cb(NULL);
     refresh_multiplayer_name_ui();
     load_screen_if_needed(screen_multiplayer_name);
 }
 
 static void open_multiplayer_cmd_select_screen(void)
 {
+    life_preview_commit_cb(NULL);
+    multiplayer_life_preview_commit_cb(NULL);
     refresh_multiplayer_cmd_select_ui();
     load_screen_if_needed(screen_multiplayer_cmd_select);
 }
 
 static void open_multiplayer_cmd_damage_screen(int target_index)
 {
+    life_preview_commit_cb(NULL);
+    multiplayer_life_preview_commit_cb(NULL);
     multiplayer_cmd_source = target_index;
     multiplayer_cmd_target = multiplayer_menu_player;
     multiplayer_cmd_delta = multiplayer_cmd_damage_totals[multiplayer_cmd_source][multiplayer_cmd_target];
@@ -1420,6 +1436,8 @@ static void open_multiplayer_cmd_damage_screen(int target_index)
 
 static void open_multiplayer_all_damage_screen(void)
 {
+    life_preview_commit_cb(NULL);
+    multiplayer_life_preview_commit_cb(NULL);
     multiplayer_all_damage_value = 0;
     refresh_multiplayer_all_damage_ui();
     load_screen_if_needed(screen_multiplayer_all_damage);
@@ -1429,6 +1447,8 @@ static void open_dice_screen(void)
 {
     lv_anim_t anim;
 
+    life_preview_commit_cb(NULL);
+    multiplayer_life_preview_commit_cb(NULL);
     refresh_dice_ui();
     load_screen_if_needed(screen_dice);
 
