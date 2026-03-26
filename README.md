@@ -46,11 +46,13 @@ Hardware assumptions, pin mappings, and platform details are documented in [docs
 
 PlatformIO is the simplest way to build this project because the dependencies are already declared in [platformio.ini](./platformio.ini).
 
+> [!IMPORTANT]
+> Whilst the PlatformIO build succeeds the output is not operational on the device. So it is recommended to upload with Arduino IDE/CLI. 
+
 ### PlatformIO
 
 ```bash
 platformio run -e esp32s3
-platformio run -e esp32s3 -t upload
 ```
 
 ### Arduino CLI
