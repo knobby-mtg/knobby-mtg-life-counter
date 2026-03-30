@@ -315,9 +315,14 @@ static void touchpad_read(lv_indev_drv_t *indev_drv, lv_indev_data_t *data)
   int read_touch_result = tp->readPoints(&point, 1);
   if (read_touch_result > 0)
   {
-    data->point.x = point.x;
-    data->point.y = point.y;
-    data->state = LV_INDEV_STATE_PRESSED;
+    bool was_dimmed = activity_kick();
+    if (was_dimmed) {
+      data->state = LV_INDEV_STATE_RELEASED;
+    } else {
+      data->point.x = point.x;
+      data->point.y = point.y;
+      data->state = LV_INDEV_STATE_PRESSED;
+    }
   }
   else
   {
@@ -409,10 +414,10 @@ void scr_lvgl_init()
 {
   ledc_timer_config_t ledc_timer = {
       .speed_mode = LEDC_LOW_SPEED_MODE,
-      .duty_resolution = LEDC_TIMER_13_BIT,
+      .duty_resolution = LEDC_TIMER_10_BIT,
       .timer_num = LEDC_TIMER_0,
       .freq_hz = 5000,
-      .clk_cfg = LEDC_AUTO_CLK};
+      .clk_cfg = LEDC_USE_RTC8M_CLK};
   ESP_ERROR_CHECK(ledc_timer_config(&ledc_timer));
 
   ledc_channel_config_t ledc_channel = {

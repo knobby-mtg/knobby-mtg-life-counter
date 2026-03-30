@@ -30,3 +30,32 @@ features/intended use:
 
 Full disclosure: this was programmed with the help of a generative AI because I've only started to learn how to do this.
 You're welcome to contribute, change stuff! I don't think I have the time or the skills to implement all the features that have been requested.
+
+## Building and Flashing (Work in Progress)
+
+### Using arduino-cli
+
+Install [arduino-cli](https://docs.arduino.cc/arduino-cli/installation/), then install the ESP32 core and required libraries:
+```
+arduino-cli core update-index --additional-urls https://espressif.github.io/arduino-esp32/package_esp32_index.json
+arduino-cli core install esp32:esp32 --additional-urls https://espressif.github.io/arduino-esp32/package_esp32_index.json
+arduino-cli lib install lvgl@8.3.11
+arduino-cli lib install ESP32_Display_Panel@1.0.0
+arduino-cli lib install ESP32_IO_Expander@1.0.1
+arduino-cli lib install esp-lib-utils@0.1.2
+```
+
+**Compile:**
+```
+arduino-cli compile \
+  --fqbn "esp32:esp32:esp32s3:FlashSize=16M,PSRAM=opi,USBMode=hwcdc,CDCOnBoot=cdc,FlashMode=qio" \
+  knobby
+```
+
+**Flash** (replace the port with your device's port from `arduino-cli board list`):
+```
+arduino-cli upload \
+  --fqbn "esp32:esp32:esp32s3:FlashSize=16M,PSRAM=opi,USBMode=hwcdc,CDCOnBoot=cdc,FlashMode=qio" \
+  -p /dev/cu.usbmodem1 \
+  knobby
+```

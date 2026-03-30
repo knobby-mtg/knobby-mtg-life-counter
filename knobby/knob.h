@@ -14,6 +14,8 @@ void knob_cb(lv_event_t *e);
 
 void knob_change(knob_event_t k,int cont);
 void knob_process_pending(void);
+bool activity_kick(void);
+bool knob_is_dimmed(void);
 float knob_read_battery_voltage(void);
 
 

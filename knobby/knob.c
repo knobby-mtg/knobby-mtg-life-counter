@@ -1,6 +1,9 @@
 #include "knob.h"
 #include "driver/ledc.h"
 #include "esp_random.h"
+#include "esp32-hal-cpu.h"
+#include "nvs_flash.h"
+#include "nvs.h"
 #include <stdint.h>
 #include <stdio.h>
 #include <string.h>
@@ -22,8 +25,8 @@
 #define BACKLIGHT_LEDC_TIMER LEDC_TIMER_0
 #define BACKLIGHT_LEDC_CHANNEL LEDC_CHANNEL_0
 #define BACKLIGHT_LEDC_FREQ 5000
-#define BACKLIGHT_LEDC_RES LEDC_TIMER_13_BIT
-#define BACKLIGHT_DUTY_MAX 8191
+#define BACKLIGHT_LEDC_RES LEDC_TIMER_10_BIT
+#define BACKLIGHT_DUTY_MAX 1023
 
 typedef struct
 {
@@ -175,6 +178,20 @@ static bool multiplayer_life_preview_active = false;
 static lv_point_t multiplayer_swipe_start = {0, 0};
 static char multiplayer_names[MULTIPLAYER_COUNT][16] = {"P1", "P2", "P3", "P4"};
 
+// ---------- auto-dim ----------
+#define AUTO_DIM_TIMEOUT_MS 30000
+#define AUTO_DIM_BRIGHTNESS 5
+#define UNDIM_GRACE_MS 150
+#define CPU_FREQ_ACTIVE 240
+#define CPU_FREQ_IDLE 80
+static bool auto_dim_enabled = false;
+static bool dimmed = false;
+static bool settings_dirty = false;
+static uint32_t last_activity_tick = 0;
+static uint32_t undim_tick = 0;
+static lv_timer_t *auto_dim_timer = NULL;
+static lv_obj_t *switch_auto_dim = NULL;
+
 static const float battery_curve_voltages[] = {3.35f, 3.55f, 3.68f, 3.74f, 3.80f, 3.88f, 3.96f, 4.06f, 4.18f};
 static const int battery_curve_percentages[] = {0, 5, 12, 22, 34, 48, 64, 82, 100};
 static const char *intro_text[INTRO_CHAR_COUNT] = {"k", "n", "o", "b", "b", "y", "."};
@@ -312,7 +329,7 @@ static void brightness_init()
         .duty_resolution = BACKLIGHT_LEDC_RES,
         .timer_num = BACKLIGHT_LEDC_TIMER,
         .freq_hz = BACKLIGHT_LEDC_FREQ,
-        .clk_cfg = LEDC_AUTO_CLK
+        .clk_cfg = LEDC_USE_RTC8M_CLK
     };
     ledc_timer_config(&ledc_timer);
 
@@ -333,6 +350,69 @@ static void brightness_apply()
     uint32_t duty = (uint32_t)((brightness_percent * BACKLIGHT_DUTY_MAX) / 100);
     ledc_set_duty(BACKLIGHT_LEDC_MODE, BACKLIGHT_LEDC_CHANNEL, duty);
     ledc_update_duty(BACKLIGHT_LEDC_MODE, BACKLIGHT_LEDC_CHANNEL);
+}
+
+static void settings_load(void)
+{
+    nvs_handle_t handle;
+    if (nvs_open("knobby", NVS_READONLY, &handle) == ESP_OK) {
+        int8_t dim_val = 0;
+        int8_t bri_val = DEFAULT_BRIGHTNESS_PERCENT;
+        nvs_get_i8(handle, "auto_dim", &dim_val);
+        nvs_get_i8(handle, "brightness", &bri_val);
+        auto_dim_enabled = (dim_val != 0);
+        brightness_percent = clamp_brightness(bri_val);
+        nvs_close(handle);
+    }
+}
+
+static void settings_save(void)
+{
+    if (!settings_dirty) return;
+    nvs_handle_t handle;
+    if (nvs_open("knobby", NVS_READWRITE, &handle) == ESP_OK) {
+        nvs_set_i8(handle, "auto_dim", auto_dim_enabled ? 1 : 0);
+        nvs_set_i8(handle, "brightness", (int8_t)brightness_percent);
+        nvs_commit(handle);
+        nvs_close(handle);
+        settings_dirty = false;
+    }
+}
+
+bool activity_kick(void)
+{
+    bool was_dimmed = dimmed;
+    last_activity_tick = lv_tick_get();
+    if (dimmed) {
+        setCpuFrequencyMhz(CPU_FREQ_ACTIVE);
+        dimmed = false;
+        undim_tick = last_activity_tick;
+        brightness_apply();
+    }
+    return was_dimmed;
+}
+
+static bool in_undim_grace(void)
+{
+    return undim_tick != 0 && lv_tick_elaps(undim_tick) < UNDIM_GRACE_MS;
+}
+
+bool knob_is_dimmed(void)
+{
+    return dimmed;
+}
+
+static void auto_dim_timer_cb(lv_timer_t *timer)
+{
+    (void)timer;
+    if (!auto_dim_enabled || dimmed) return;
+    if (lv_tick_elaps(last_activity_tick) >= AUTO_DIM_TIMEOUT_MS) {
+        dimmed = true;
+        uint32_t duty = (uint32_t)((AUTO_DIM_BRIGHTNESS * BACKLIGHT_DUTY_MAX) / 100);
+        ledc_set_duty(BACKLIGHT_LEDC_MODE, BACKLIGHT_LEDC_CHANNEL, duty);
+        ledc_update_duty(BACKLIGHT_LEDC_MODE, BACKLIGHT_LEDC_CHANNEL);
+        setCpuFrequencyMhz(CPU_FREQ_IDLE);
+    }
 }
 
 static lv_obj_t *make_button(lv_obj_t *parent, const char *txt, lv_coord_t w, lv_coord_t h, lv_event_cb_t cb)
@@ -1044,6 +1124,7 @@ static void add_damage_to_selected_enemy(int delta)
 static void change_brightness(int delta)
 {
     brightness_percent = clamp_brightness(brightness_percent + delta);
+    settings_dirty = true;
     brightness_apply();
     refresh_settings_ui();
 }
@@ -1364,6 +1445,17 @@ static void event_open_settings(lv_event_t *e)
     open_settings_screen();
 }
 
+static void event_toggle_auto_dim(lv_event_t *e)
+{
+    (void)e;
+    auto_dim_enabled = lv_obj_has_state(switch_auto_dim, LV_STATE_CHECKED);
+    settings_dirty = true;
+    if (!auto_dim_enabled && dimmed) {
+        dimmed = false;
+        brightness_apply();
+    }
+}
+
 static void event_select_itze(lv_event_t *e)
 {
     (void)e;
@@ -1385,6 +1477,13 @@ static void event_select_utze(lv_event_t *e)
 static void event_back_main(lv_event_t *e)
 {
     (void)e;
+    back_to_main();
+}
+
+static void event_settings_back(lv_event_t *e)
+{
+    (void)e;
+    settings_save();
     back_to_main();
 }
 
@@ -2157,17 +2256,35 @@ static void build_settings_screen()
     lv_obj_set_style_text_font(label_settings_title, &lv_font_montserrat_22, 0);
     lv_obj_align(label_settings_title, LV_ALIGN_TOP_MID, 0, 24);
 
+    lv_obj_t *dim_row = lv_obj_create(screen_settings);
+    lv_obj_remove_style_all(dim_row);
+    lv_obj_set_size(dim_row, 180, 40);
+    lv_obj_align(dim_row, LV_ALIGN_CENTER, 0, -52);
+    lv_obj_set_flex_flow(dim_row, LV_FLEX_FLOW_ROW);
+    lv_obj_set_flex_align(dim_row, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
+    lv_obj_clear_flag(dim_row, LV_OBJ_FLAG_SCROLLABLE);
+
+    lv_obj_t *dim_label = lv_label_create(dim_row);
+    lv_label_set_text(dim_label, "Auto-dim  ");
+    lv_obj_set_style_text_color(dim_label, lv_color_hex(0xB8B8B8), 0);
+    lv_obj_set_style_text_font(dim_label, &lv_font_montserrat_16, 0);
+
+    switch_auto_dim = lv_switch_create(dim_row);
+    lv_obj_set_size(switch_auto_dim, 50, 26);
+    if (auto_dim_enabled) lv_obj_add_state(switch_auto_dim, LV_STATE_CHECKED);
+    lv_obj_add_event_cb(switch_auto_dim, event_toggle_auto_dim, LV_EVENT_VALUE_CHANGED, NULL);
+
     label_settings_value = lv_label_create(screen_settings);
     lv_label_set_text(label_settings_value, "Brightness: 80%");
     lv_obj_set_style_text_color(label_settings_value, lv_color_white(), 0);
     lv_obj_set_style_text_font(label_settings_value, &lv_font_montserrat_32, 0);
-    lv_obj_align(label_settings_value, LV_ALIGN_CENTER, 0, -18);
+    lv_obj_align(label_settings_value, LV_ALIGN_CENTER, 0, -14);
 
     label_settings_battery = lv_label_create(screen_settings);
     lv_label_set_text(label_settings_battery, "Battery: --%");
     lv_obj_set_style_text_color(label_settings_battery, lv_color_hex(0xB8B8B8), 0);
     lv_obj_set_style_text_font(label_settings_battery, &lv_font_montserrat_22, 0);
-    lv_obj_align(label_settings_battery, LV_ALIGN_CENTER, 0, 16);
+    lv_obj_align(label_settings_battery, LV_ALIGN_CENTER, 0, 20);
 
     label_settings_battery_detail = lv_label_create(screen_settings);
     lv_label_set_text(label_settings_battery_detail, "No calibrated reading");
@@ -2181,13 +2298,15 @@ static void build_settings_screen()
     lv_obj_set_style_text_font(label_settings_hint, &lv_font_montserrat_14, 0);
     lv_obj_align(label_settings_hint, LV_ALIGN_BOTTOM_MID, 0, -76);
 
-    lv_obj_t *btn_back = make_button(screen_settings, "Back", 120, 52, event_back_main);
+    lv_obj_t *btn_back = make_button(screen_settings, "Back", 120, 52, event_settings_back);
     lv_obj_align(btn_back, LV_ALIGN_BOTTOM_MID, 0, -22);
 }
 
 void knob_gui(void)
 {
+    nvs_flash_init();
     brightness_init();
+    settings_load();
     brightness_apply();
 
     build_intro_screen();
@@ -2236,6 +2355,9 @@ void knob_gui(void)
     if (multiplayer_life_preview_timer != NULL) {
         lv_timer_pause(multiplayer_life_preview_timer);
     }
+    last_activity_tick = lv_tick_get();
+    auto_dim_timer = lv_timer_create(auto_dim_timer_cb, 1000, NULL);
+
     lv_scr_load(screen_intro);
     if (intro_timer != NULL) {
         lv_timer_ready(intro_timer);
@@ -2248,6 +2370,9 @@ void knob_gui(void)
 // ----------------------------------------------------
 static void handle_knob_event(knob_event_t k)
 {
+    activity_kick();
+    if (in_undim_grace()) return;
+
     if (lv_scr_act() == screen_intro)
     {
         return;
