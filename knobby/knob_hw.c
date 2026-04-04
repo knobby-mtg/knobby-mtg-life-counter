@@ -167,7 +167,6 @@ void knob_hw_init(void)
     brightness_init();
     brightness_percent = nvs_get_brightness();
     auto_dim_enabled = nvs_get_auto_dim();
-    brightness_apply();
     last_activity_tick = lv_tick_get();
     auto_dim_timer = lv_timer_create(auto_dim_timer_cb, 1000, NULL);
 }

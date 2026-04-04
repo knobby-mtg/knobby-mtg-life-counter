@@ -64,6 +64,9 @@ void knob_gui(void)
     knob_hw_init();
 
     build_intro_screen();
+    lv_scr_load(screen_intro);
+    lv_refr_now(NULL);
+    brightness_apply();
     build_dice_screen();
     build_main_screen();
     build_multiplayer_screen();
@@ -93,8 +96,6 @@ void knob_gui(void)
     knob_timer_init();
     knob_life_init();
     knob_intro_init();
-
-    lv_scr_load(screen_intro);
 }
 
 // ---------- knob event handler ----------
