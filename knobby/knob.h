@@ -16,6 +16,8 @@ void knob_change(knob_event_t k,int cont);
 void knob_process_pending(void);
 bool activity_kick(void);
 bool knob_is_dimmed(void);
+void knob_notify_swipe_up(void);
+void knob_notify_swipe_down(void);
 float knob_read_battery_voltage(void);
 
 

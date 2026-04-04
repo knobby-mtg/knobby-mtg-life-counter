@@ -307,6 +307,29 @@ void set_brightness(uint8_t bri)
   backlight->setBrightness(bri);
 }
 
+static bool tp_tracking = false;
+static bool tp_swiped = false;
+static lv_point_t tp_start = {0, 0};
+
+#define SWIPE_THRESHOLD 80
+#define SWIPE_MAX_LATERAL 120
+
+static bool check_swipe(int cur_x, int cur_y)
+{
+  int dy = tp_start.y - cur_y;
+  int dx = cur_x > tp_start.x ? cur_x - tp_start.x : tp_start.x - cur_x;
+  if (dy > SWIPE_THRESHOLD && dx < SWIPE_MAX_LATERAL) {
+    knob_notify_swipe_up();
+    lv_indev_reset(lv_indev_get_act(), NULL);
+    return true;
+  } else if (dy < -SWIPE_THRESHOLD && dx < SWIPE_MAX_LATERAL) {
+    knob_notify_swipe_down();
+    lv_indev_reset(lv_indev_get_act(), NULL);
+    return true;
+  }
+  return false;
+}
+
 static void touchpad_read(lv_indev_drv_t *indev_drv, lv_indev_data_t *data)
 {
   ESP_PanelTouch *tp = (ESP_PanelTouch *)indev_drv->user_data;
@@ -318,14 +341,31 @@ static void touchpad_read(lv_indev_drv_t *indev_drv, lv_indev_data_t *data)
     bool was_dimmed = activity_kick();
     if (was_dimmed) {
       data->state = LV_INDEV_STATE_RELEASED;
+      tp_tracking = false;
+      tp_swiped = false;
+    } else if (tp_swiped) {
+      data->state = LV_INDEV_STATE_RELEASED;
     } else {
       data->point.x = point.x;
       data->point.y = point.y;
       data->state = LV_INDEV_STATE_PRESSED;
+      if (!tp_tracking) {
+        tp_start.x = point.x;
+        tp_start.y = point.y;
+        tp_tracking = true;
+      } else if (check_swipe(point.x, point.y)) {
+        tp_swiped = true;
+        data->state = LV_INDEV_STATE_RELEASED;
+      }
     }
   }
   else
   {
+    if (tp_tracking && !tp_swiped) {
+      check_swipe(data->point.x, data->point.y);
+    }
+    tp_tracking = false;
+    tp_swiped = false;
     data->state = LV_INDEV_STATE_RELEASED;
   }
 }
