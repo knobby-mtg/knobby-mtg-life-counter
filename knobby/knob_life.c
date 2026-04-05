@@ -23,9 +23,9 @@ enemy_state_t enemies[MAX_ENEMY_COUNT] = {
 int selected_enemy = -1;
 int dice_result = 0;
 
-int multiplayer_life[MAX_PLAYERS] = {40, 40, 40, 40, 40, 40, 40, 40};
+int multiplayer_life[MAX_PLAYERS] = {40, 40, 40, 40};
 int multiplayer_selected = -1;
-char multiplayer_names[MAX_PLAYERS][16] = {"P1", "P2", "P3", "P4", "P5", "P6", "P7", "P8"};
+char multiplayer_names[MAX_PLAYERS][16] = {"P1", "P2", "P3", "P4"};
 int multiplayer_menu_player = 0;
 int multiplayer_cmd_damage_totals[MAX_PLAYERS][MAX_PLAYERS] = {{0}};
 int multiplayer_all_damage_value = 0;
