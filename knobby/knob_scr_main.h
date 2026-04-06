@@ -4,7 +4,7 @@
 #include "knob_types.h"
 
 // ---------- screens ----------
-extern lv_obj_t *screen_main;
+extern lv_obj_t *screen_1p;
 extern lv_obj_t *screen_select;
 extern lv_obj_t *screen_damage;
 

@@ -5,12 +5,12 @@
 #include "knob_damage_log.h"
 
 // ---------- screens ----------
-lv_obj_t *screen_multiplayer = NULL;
-lv_obj_t *screen_multiplayer_2p = NULL;
-lv_obj_t *screen_multiplayer_3p = NULL;
-lv_obj_t *screen_multiplayer_menu = NULL;
-lv_obj_t *screen_multiplayer_name = NULL;
-lv_obj_t *screen_multiplayer_all_damage = NULL;
+lv_obj_t *screen_4p = NULL;
+lv_obj_t *screen_2p = NULL;
+lv_obj_t *screen_3p = NULL;
+lv_obj_t *screen_player_menu = NULL;
+lv_obj_t *screen_player_name = NULL;
+lv_obj_t *screen_player_all_damage = NULL;
 
 // ---------- widgets ----------
 static lv_obj_t *multiplayer_quadrants[MULTIPLAYER_COUNT];
@@ -223,28 +223,28 @@ void open_multiplayer_screen(void)
 {
     int track = nvs_get_players_to_track();
     refresh_multiplayer_ui();
-    if (track == 2) load_screen_if_needed(screen_multiplayer_2p);
-    else load_screen_if_needed(screen_multiplayer);
+    if (track == 2) load_screen_if_needed(screen_2p);
+    else load_screen_if_needed(screen_4p);
 }
 
 void open_multiplayer_menu_screen(int player_index)
 {
     multiplayer_menu_player = player_index;
     refresh_multiplayer_menu_ui();
-    load_screen_if_needed(screen_multiplayer_menu);
+    load_screen_if_needed(screen_player_menu);
 }
 
 static void open_multiplayer_name_screen(void)
 {
     refresh_multiplayer_name_ui();
-    load_screen_if_needed(screen_multiplayer_name);
+    load_screen_if_needed(screen_player_name);
 }
 
 static void open_multiplayer_all_damage_screen(void)
 {
     multiplayer_all_damage_value = 0;
     refresh_multiplayer_all_damage_ui();
-    load_screen_if_needed(screen_multiplayer_all_damage);
+    load_screen_if_needed(screen_player_all_damage);
 }
 
 // ---------- quadrant-to-player mapping ----------
@@ -392,14 +392,14 @@ void build_multiplayer_screen(void)
     static const lv_coord_t quad_y[MULTIPLAYER_COUNT] = {0, 0, 180, 180};
     int i;
 
-    screen_multiplayer = lv_obj_create(NULL);
-    lv_obj_set_size(screen_multiplayer, 360, 360);
-    lv_obj_set_style_bg_color(screen_multiplayer, lv_color_black(), 0);
-    lv_obj_set_style_border_width(screen_multiplayer, 0, 0);
-    lv_obj_set_scrollbar_mode(screen_multiplayer, LV_SCROLLBAR_MODE_OFF);
+    screen_4p = lv_obj_create(NULL);
+    lv_obj_set_size(screen_4p, 360, 360);
+    lv_obj_set_style_bg_color(screen_4p, lv_color_black(), 0);
+    lv_obj_set_style_border_width(screen_4p, 0, 0);
+    lv_obj_set_scrollbar_mode(screen_4p, LV_SCROLLBAR_MODE_OFF);
 
     for (i = 0; i < MULTIPLAYER_COUNT; i++) {
-        multiplayer_quadrants[i] = lv_btn_create(screen_multiplayer);
+        multiplayer_quadrants[i] = lv_btn_create(screen_4p);
         lv_obj_remove_style_all(multiplayer_quadrants[i]);
         lv_obj_set_style_bg_opa(multiplayer_quadrants[i], LV_OPA_COVER, 0);
         lv_obj_set_size(multiplayer_quadrants[i], 180, 180);
@@ -431,80 +431,80 @@ void build_multiplayer_screen(void)
 
 void build_multiplayer_menu_screen(void)
 {
-    screen_multiplayer_menu = lv_obj_create(NULL);
-    lv_obj_set_size(screen_multiplayer_menu, 360, 360);
-    lv_obj_set_style_bg_color(screen_multiplayer_menu, lv_color_black(), 0);
-    lv_obj_set_style_border_width(screen_multiplayer_menu, 0, 0);
-    lv_obj_set_scrollbar_mode(screen_multiplayer_menu, LV_SCROLLBAR_MODE_OFF);
+    screen_player_menu = lv_obj_create(NULL);
+    lv_obj_set_size(screen_player_menu, 360, 360);
+    lv_obj_set_style_bg_color(screen_player_menu, lv_color_black(), 0);
+    lv_obj_set_style_border_width(screen_player_menu, 0, 0);
+    lv_obj_set_scrollbar_mode(screen_player_menu, LV_SCROLLBAR_MODE_OFF);
 
-    label_multiplayer_menu_title = lv_label_create(screen_multiplayer_menu);
+    label_multiplayer_menu_title = lv_label_create(screen_player_menu);
     lv_obj_set_style_text_color(label_multiplayer_menu_title, lv_color_white(), 0);
     lv_obj_set_style_text_font(label_multiplayer_menu_title, &lv_font_montserrat_22, 0);
     lv_obj_align(label_multiplayer_menu_title, LV_ALIGN_TOP_MID, 0, 26);
 
-    lv_obj_t *btn = make_button(screen_multiplayer_menu, "rename", 180, 46, event_multiplayer_menu_rename);
+    lv_obj_t *btn = make_button(screen_player_menu, "rename", 180, 46, event_multiplayer_menu_rename);
     lv_obj_align(btn, LV_ALIGN_CENTER, 0, -36);
 
-    btn = make_button(screen_multiplayer_menu, "Cmd.dmg", 180, 46, event_multiplayer_menu_cmd_damage);
+    btn = make_button(screen_player_menu, "Cmd.dmg", 180, 46, event_multiplayer_menu_cmd_damage);
     lv_obj_align(btn, LV_ALIGN_CENTER, 0, 24);
 
-    btn = make_button(screen_multiplayer_menu, "all.dmg", 180, 46, event_multiplayer_menu_all_damage);
+    btn = make_button(screen_player_menu, "all.dmg", 180, 46, event_multiplayer_menu_all_damage);
     lv_obj_align(btn, LV_ALIGN_CENTER, 0, 84);
 }
 
 void build_multiplayer_name_screen(void)
 {
-    screen_multiplayer_name = lv_obj_create(NULL);
-    lv_obj_set_size(screen_multiplayer_name, 360, 360);
-    lv_obj_set_style_bg_color(screen_multiplayer_name, lv_color_black(), 0);
-    lv_obj_set_style_border_width(screen_multiplayer_name, 0, 0);
-    lv_obj_set_scrollbar_mode(screen_multiplayer_name, LV_SCROLLBAR_MODE_OFF);
+    screen_player_name = lv_obj_create(NULL);
+    lv_obj_set_size(screen_player_name, 360, 360);
+    lv_obj_set_style_bg_color(screen_player_name, lv_color_black(), 0);
+    lv_obj_set_style_border_width(screen_player_name, 0, 0);
+    lv_obj_set_scrollbar_mode(screen_player_name, LV_SCROLLBAR_MODE_OFF);
 
-    label_multiplayer_name_title = lv_label_create(screen_multiplayer_name);
+    label_multiplayer_name_title = lv_label_create(screen_player_name);
     lv_obj_set_style_text_color(label_multiplayer_name_title, lv_color_white(), 0);
     lv_obj_set_style_text_font(label_multiplayer_name_title, &lv_font_montserrat_22, 0);
     lv_obj_align(label_multiplayer_name_title, LV_ALIGN_TOP_MID, 0, 18);
 
-    textarea_multiplayer_name = lv_textarea_create(screen_multiplayer_name);
+    textarea_multiplayer_name = lv_textarea_create(screen_player_name);
     lv_obj_set_size(textarea_multiplayer_name, 240, 44);
     lv_obj_align(textarea_multiplayer_name, LV_ALIGN_TOP_MID, 0, 56);
     lv_textarea_set_max_length(textarea_multiplayer_name, 15);
     lv_textarea_set_one_line(textarea_multiplayer_name, true);
 
-    keyboard_multiplayer_name = lv_keyboard_create(screen_multiplayer_name);
+    keyboard_multiplayer_name = lv_keyboard_create(screen_player_name);
     lv_obj_set_size(keyboard_multiplayer_name, 360, 170);
     lv_obj_align(keyboard_multiplayer_name, LV_ALIGN_BOTTOM_MID, 0, 0);
     lv_keyboard_set_textarea(keyboard_multiplayer_name, textarea_multiplayer_name);
 
-    lv_obj_t *btn = make_button(screen_multiplayer_name, "save", 88, 38, event_multiplayer_name_save);
+    lv_obj_t *btn = make_button(screen_player_name, "save", 88, 38, event_multiplayer_name_save);
     lv_obj_align(btn, LV_ALIGN_TOP_MID, 0, 116);
 }
 
 void build_multiplayer_all_damage_screen(void)
 {
-    screen_multiplayer_all_damage = lv_obj_create(NULL);
-    lv_obj_set_size(screen_multiplayer_all_damage, 360, 360);
-    lv_obj_set_style_bg_color(screen_multiplayer_all_damage, lv_color_black(), 0);
-    lv_obj_set_style_border_width(screen_multiplayer_all_damage, 0, 0);
-    lv_obj_set_scrollbar_mode(screen_multiplayer_all_damage, LV_SCROLLBAR_MODE_OFF);
+    screen_player_all_damage = lv_obj_create(NULL);
+    lv_obj_set_size(screen_player_all_damage, 360, 360);
+    lv_obj_set_style_bg_color(screen_player_all_damage, lv_color_black(), 0);
+    lv_obj_set_style_border_width(screen_player_all_damage, 0, 0);
+    lv_obj_set_scrollbar_mode(screen_player_all_damage, LV_SCROLLBAR_MODE_OFF);
 
-    label_multiplayer_all_damage_title = lv_label_create(screen_multiplayer_all_damage);
+    label_multiplayer_all_damage_title = lv_label_create(screen_player_all_damage);
     lv_obj_set_style_text_color(label_multiplayer_all_damage_title, lv_color_white(), 0);
     lv_obj_set_style_text_font(label_multiplayer_all_damage_title, &lv_font_montserrat_22, 0);
     lv_obj_align(label_multiplayer_all_damage_title, LV_ALIGN_TOP_MID, 0, 26);
 
-    label_multiplayer_all_damage_value = lv_label_create(screen_multiplayer_all_damage);
+    label_multiplayer_all_damage_value = lv_label_create(screen_player_all_damage);
     lv_obj_set_style_text_color(label_multiplayer_all_damage_value, lv_color_white(), 0);
     lv_obj_set_style_text_font(label_multiplayer_all_damage_value, &lv_font_montserrat_32, 0);
     lv_obj_align(label_multiplayer_all_damage_value, LV_ALIGN_CENTER, 0, -8);
 
-    label_multiplayer_all_damage_hint = lv_label_create(screen_multiplayer_all_damage);
+    label_multiplayer_all_damage_hint = lv_label_create(screen_player_all_damage);
     lv_label_set_text(label_multiplayer_all_damage_hint, "Turn knob, then apply");
     lv_obj_set_style_text_color(label_multiplayer_all_damage_hint, lv_color_hex(0x7A7A7A), 0);
     lv_obj_set_style_text_font(label_multiplayer_all_damage_hint, &lv_font_montserrat_14, 0);
     lv_obj_align(label_multiplayer_all_damage_hint, LV_ALIGN_CENTER, 0, 38);
 
-    lv_obj_t *btn = make_button(screen_multiplayer_all_damage, "apply", 120, 46, event_multiplayer_all_damage_apply);
+    lv_obj_t *btn = make_button(screen_player_all_damage, "apply", 120, 46, event_multiplayer_all_damage_apply);
     lv_obj_align(btn, LV_ALIGN_BOTTOM_MID, 0, -46);
 }
 
@@ -514,14 +514,14 @@ void build_multiplayer_2p_screen(void)
     static const lv_coord_t panel_y[2] = {0, 182};
     int i;
 
-    screen_multiplayer_2p = lv_obj_create(NULL);
-    lv_obj_set_size(screen_multiplayer_2p, 360, 360);
-    lv_obj_set_style_bg_color(screen_multiplayer_2p, lv_color_black(), 0);
-    lv_obj_set_style_border_width(screen_multiplayer_2p, 0, 0);
-    lv_obj_set_scrollbar_mode(screen_multiplayer_2p, LV_SCROLLBAR_MODE_OFF);
+    screen_2p = lv_obj_create(NULL);
+    lv_obj_set_size(screen_2p, 360, 360);
+    lv_obj_set_style_bg_color(screen_2p, lv_color_black(), 0);
+    lv_obj_set_style_border_width(screen_2p, 0, 0);
+    lv_obj_set_scrollbar_mode(screen_2p, LV_SCROLLBAR_MODE_OFF);
 
     for (i = 0; i < 2; i++) {
-        mp2_panels[i] = lv_btn_create(screen_multiplayer_2p);
+        mp2_panels[i] = lv_btn_create(screen_2p);
         lv_obj_remove_style_all(mp2_panels[i]);
         lv_obj_set_style_bg_opa(mp2_panels[i], LV_OPA_COVER, 0);
         lv_obj_set_size(mp2_panels[i], 360, 178);
@@ -551,6 +551,6 @@ void build_multiplayer_2p_screen(void)
 // ---------- 3-player screen (reuses 4p layout, bottom-left empty) ----------
 void build_multiplayer_3p_screen(void)
 {
-    /* 3p shares screen_multiplayer with 4p; nothing to build */
-    screen_multiplayer_3p = screen_multiplayer;
+    /* 3p shares screen_4p with 4p; nothing to build */
+    screen_3p = screen_4p;
 }

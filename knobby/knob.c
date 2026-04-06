@@ -110,7 +110,7 @@ static void handle_knob_event(knob_event_t k)
     {
         return;
     }
-    else if (lv_scr_act() == screen_main)
+    else if (lv_scr_act() == screen_1p)
     {
         if (k == KNOB_LEFT)      change_life(-1);
         else if (k == KNOB_RIGHT) change_life(+1);
@@ -126,13 +126,13 @@ static void handle_knob_event(knob_event_t k)
         else if (k == KNOB_RIGHT) change_brightness(+1);
         refresh_settings_ui();
     }
-    else if (lv_scr_act() == screen_multiplayer ||
-             lv_scr_act() == screen_multiplayer_2p)
+    else if (lv_scr_act() == screen_4p ||
+             lv_scr_act() == screen_2p)
     {
         if (k == KNOB_LEFT)      change_multiplayer_life(-1);
         else if (k == KNOB_RIGHT) change_multiplayer_life(+1);
     }
-    else if (lv_scr_act() == screen_multiplayer_all_damage)
+    else if (lv_scr_act() == screen_player_all_damage)
     {
         if (k == KNOB_LEFT)      change_multiplayer_all_damage(-1);
         else if (k == KNOB_RIGHT) change_multiplayer_all_damage(+1);
@@ -178,13 +178,10 @@ void knob_process_pending(void)
     if (swipe_up_pending) {
         swipe_up_pending = false;
         lv_obj_t *cur = lv_scr_act();
-        if (cur != screen_quad_menu && cur != screen_tools_menu &&
-            cur != screen_screen_settings_menu && cur != screen_settings_page2 &&
-            cur != screen_game_mode_menu && cur != screen_custom_life &&
-            cur != screen_multiplayer_menu && cur != screen_multiplayer_name &&
-            cur != screen_multiplayer_all_damage &&
-            cur != screen_damage_log &&
-            cur != screen_intro) {
+        if (cur == screen_1p ||
+            cur == screen_2p ||
+            cur == screen_3p ||
+            cur == screen_4p) {
             previous_screen = cur;
             open_quad_menu();
         }
@@ -222,11 +219,11 @@ void knob_process_pending(void)
         } else if (cur == screen_custom_life) {
             refresh_game_mode_menu_ui();
             lv_scr_load(screen_game_mode_menu);
-        } else if (cur == screen_multiplayer_menu) {
+        } else if (cur == screen_player_menu) {
             open_multiplayer_screen();
-        } else if (cur == screen_multiplayer_name) {
+        } else if (cur == screen_player_name) {
             open_multiplayer_menu_screen(multiplayer_menu_player);
-        } else if (cur == screen_multiplayer_all_damage) {
+        } else if (cur == screen_player_all_damage) {
             open_multiplayer_menu_screen(multiplayer_menu_player);
         }
     }

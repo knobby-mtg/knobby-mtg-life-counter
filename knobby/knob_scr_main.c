@@ -4,11 +4,11 @@
 #include "knob_nvs.h"
 
 // Forward declarations for multiplayer routing
-extern lv_obj_t *screen_multiplayer;
+extern lv_obj_t *screen_4p;
 extern void refresh_multiplayer_ui(void);
 
 // ---------- screens ----------
-lv_obj_t *screen_main = NULL;
+lv_obj_t *screen_1p = NULL;
 lv_obj_t *screen_select = NULL;
 lv_obj_t *screen_damage = NULL;
 
@@ -380,13 +380,13 @@ void back_to_main(void)
     int track = nvs_get_players_to_track();
     cmd_damage_target = -1;
     if (track > 1) {
-        extern lv_obj_t *screen_multiplayer_2p;
+        extern lv_obj_t *screen_2p;
         refresh_multiplayer_ui();
-        if (track == 2) load_screen_if_needed(screen_multiplayer_2p);
-        else load_screen_if_needed(screen_multiplayer);
+        if (track == 2) load_screen_if_needed(screen_2p);
+        else load_screen_if_needed(screen_4p);
     } else {
         refresh_main_ui();
-        load_screen_if_needed(screen_main);
+        load_screen_if_needed(screen_1p);
     }
 }
 
@@ -435,13 +435,13 @@ static void event_back_main(lv_event_t *e)
 // ---------- screen builders ----------
 void build_main_screen(void)
 {
-    screen_main = lv_obj_create(NULL);
-    lv_obj_set_size(screen_main, 360, 360);
-    lv_obj_set_style_bg_color(screen_main, lv_color_black(), 0);
-    lv_obj_set_style_border_width(screen_main, 0, 0);
-    lv_obj_set_scrollbar_mode(screen_main, LV_SCROLLBAR_MODE_OFF);
+    screen_1p = lv_obj_create(NULL);
+    lv_obj_set_size(screen_1p, 360, 360);
+    lv_obj_set_style_bg_color(screen_1p, lv_color_black(), 0);
+    lv_obj_set_style_border_width(screen_1p, 0, 0);
+    lv_obj_set_scrollbar_mode(screen_1p, LV_SCROLLBAR_MODE_OFF);
 
-    arc_life = lv_arc_create(screen_main);
+    arc_life = lv_arc_create(screen_1p);
     lv_obj_set_size(arc_life, 360, 360);
     lv_obj_center(arc_life);
     lv_arc_set_rotation(arc_life, 90);
@@ -451,12 +451,12 @@ void build_main_screen(void)
     lv_obj_remove_style(arc_life, NULL, LV_PART_KNOB);
     lv_obj_clear_flag(arc_life, LV_OBJ_FLAG_CLICKABLE);
 
-    life_hitbox = make_plain_box(screen_main, 320, 188);
+    life_hitbox = make_plain_box(screen_1p, 320, 188);
     lv_obj_align(life_hitbox, LV_ALIGN_CENTER, 0, -8);
     lv_obj_add_flag(life_hitbox, LV_OBJ_FLAG_CLICKABLE);
     lv_obj_add_event_cb(life_hitbox, event_open_select, LV_EVENT_LONG_PRESSED, NULL);
 
-    life_container = make_plain_box(screen_main, 290, 112);
+    life_container = make_plain_box(screen_1p, 290, 112);
     lv_obj_align(life_container, LV_ALIGN_CENTER, 0, -6);
 
     digit_box_sign = make_plain_box(life_container, 60, 112);
@@ -474,7 +474,7 @@ void build_main_screen(void)
     digit_box_ones = make_plain_box(life_container, 60, 112);
     create_digit(digit_box_ones, digit_ones);
 
-    turn_container = make_plain_box(screen_main, 96, 96);
+    turn_container = make_plain_box(screen_1p, 96, 96);
     lv_obj_align(turn_container, LV_ALIGN_CENTER, 110, -6);
     lv_obj_add_flag(turn_container, LV_OBJ_FLAG_CLICKABLE);
     lv_obj_add_flag(turn_container, LV_OBJ_FLAG_HIDDEN);
