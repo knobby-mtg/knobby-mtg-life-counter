@@ -21,14 +21,14 @@ TODO - cover menu interaction, etc, etc
 
 ## ⚙️ Hardware
 
-This is the hardware I’ve used: JC3636K518 with battery, you can find it on AliExpress.
+This is the hardware used: JC3636K518 with battery, you can find it on AliExpress.
 
 Specifications:
-1.8 inch display, resolution 360*360
-Display driver: ST77916
-Touch: CST816
-CPU: 240 MHz
-Platform: ESP32
+- 1.8 inch display, resolution 360*360
+- Display driver: ST77916
+- Touch: CST816
+- CPU: 240 MHz
+- Platform: ESP32
 
 The one from waveshare might be identical: 
 https://www.waveshare.com/wiki/ESP32-S3-Knob-Touch-LCD-1.8
