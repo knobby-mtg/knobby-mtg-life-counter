@@ -5,6 +5,8 @@
 #include "knob_timer.h"
 #include "knob_game_mode.h"
 #include "knob_damage_log.h"
+#include "knob_rename.h"
+#include "knob_life.h"
 
 // Forward declarations for cross-module calls
 extern void reset_all_values(void);
@@ -278,6 +280,13 @@ static void event_open_damage_log(lv_event_t *e)
     open_damage_log_screen();
 }
 
+static void event_tool_rename_all(lv_event_t *e)
+{
+    (void)e;
+    multiplayer_menu_player = 0;
+    open_rename_all_screen();
+}
+
 static void event_general_reset(lv_event_t *e)
 {
     (void)e;
@@ -301,7 +310,7 @@ void build_quad_menus(void)
         {"Dice",        event_tool_dice, true, LV_EVENT_CLICKED},
         {"Timer",       event_tool_timer, true, LV_EVENT_CLICKED},
         {"Event\nLog",  event_open_damage_log, true, LV_EVENT_CLICKED},
-        {"",            NULL, false, LV_EVENT_CLICKED},
+        {"Rename\nAll", event_tool_rename_all, true, LV_EVENT_CLICKED},
     };
     build_quad_screen(&screen_tools_menu, tools_items);
 

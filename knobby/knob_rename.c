@@ -35,6 +35,14 @@ static void name_screen_show_list(void);
 static void name_screen_show_keyboard(void);
 
 // ---------- MRU helpers ----------
+static bool is_default_name(const char *name)
+{
+    if (name[0] != 'P') return false;
+    if (name[1] < '1' || name[1] > '9') return false;
+    if (name[2] != '\0') return false;
+    return true;
+}
+
 static void mru_load(void)
 {
     nvs_get_name_list(mru_names);
@@ -83,7 +91,7 @@ static void rename_all_advance(void)
         rename_all_active = false;
         refresh_select_ui();
         refresh_damage_ui();
-        open_multiplayer_screen();
+        back_to_main();
     }
 }
 
@@ -92,7 +100,8 @@ static void apply_name_and_return(const char *name)
 {
     snprintf(multiplayer_names[multiplayer_menu_player],
              sizeof(multiplayer_names[multiplayer_menu_player]), "%s", name);
-    mru_use_name(name);
+    if (!is_default_name(name))
+        mru_use_name(name);
     refresh_multiplayer_ui();
 
     if (rename_all_active) {
@@ -131,6 +140,29 @@ static void event_name_save(lv_event_t *e)
     } else {
         apply_name_and_return(txt);
     }
+}
+
+static void event_mru_delete(lv_event_t *e)
+{
+    (void)e;
+    /* Only delete actual MRU entries (rows 1..mru_count) */
+    if (mru_selected < 1 || mru_selected > mru_count) return;
+
+    int del = mru_selected - 1;
+    int remaining = mru_count - del - 1;
+    if (remaining > 0)
+        memmove(&mru_names[del], &mru_names[del + 1], (size_t)remaining * NAME_LIST_LEN);
+    mru_count--;
+    mru_names[mru_count][0] = '\0';
+
+    nvs_set_name_list((const char (*)[NAME_LIST_LEN])mru_names);
+    settings_save();
+
+    /* Clamp selection */
+    int total = 1 + mru_count + 1;
+    if (mru_selected >= total) mru_selected = total - 1;
+
+    refresh_mru_list_ui();
 }
 
 static void event_mru_select(lv_event_t *e)
@@ -280,7 +312,7 @@ bool name_screen_handle_back(void)
     }
     if (rename_all_active) {
         rename_all_active = false;
-        open_multiplayer_screen();
+        back_to_main();
         return true;
     }
     return false;
@@ -320,7 +352,7 @@ void open_rename_all_screen(void)
 {
     rename_all_active = true;
     rename_all_start = multiplayer_menu_player;
-    rename_all_count = nvs_get_players_to_track();
+    rename_all_count = nvs_get_num_players();
     rename_all_done = 0;
     open_rename_screen();
 }
@@ -351,6 +383,7 @@ void build_rename_screen(void)
 
     btn_mru_select = make_button(screen_player_name, "Select", 120, 38, event_mru_select);
     lv_obj_align(btn_mru_select, LV_ALIGN_TOP_MID, 0, 278);
+    lv_obj_add_event_cb(btn_mru_select, event_mru_delete, LV_EVENT_LONG_PRESSED, NULL);
 
     /* --- Keyboard mode widgets (hidden initially) --- */
     textarea_name = lv_textarea_create(screen_player_name);

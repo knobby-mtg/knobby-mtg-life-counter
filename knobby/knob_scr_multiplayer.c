@@ -61,7 +61,7 @@ static void apply_label_rotation(lv_obj_t *life_lbl, lv_obj_t *name_lbl,
 }
 
 // ---------- refresh helpers ----------
-static void refresh_mp_panel(lv_obj_t *panel, lv_obj_t *life_lbl, lv_obj_t *name_lbl, int i)
+static void refresh_mp_panel(lv_obj_t *panel, lv_obj_t *life_lbl, lv_obj_t *name_lbl, int i, int color_i)
 {
     char buf[8];
     bool preview_here = multiplayer_life_preview_active && (multiplayer_preview_player == i);
@@ -80,7 +80,7 @@ static void refresh_mp_panel(lv_obj_t *panel, lv_obj_t *life_lbl, lv_obj_t *name
         int vib;
         if (multiplayer_selected < 0) vib = LIFE_VIB_MID;
         else vib = selected ? LIFE_VIB_VIV : LIFE_VIB_DIM;
-        bg_color = get_player_color_vib(i, vib);
+        bg_color = get_player_color_vib(color_i, vib);
         text_color = color_is_light(bg_color) ? lv_color_black() : lv_color_white();
     }
 
@@ -99,7 +99,7 @@ static void refresh_mp_panel(lv_obj_t *panel, lv_obj_t *life_lbl, lv_obj_t *name
                     /* Life-color mode: pick purely on bg contrast */
                     preview_c = color_is_light(bg_color) ? lv_color_black() : lv_color_white();
                 } else {
-                    preview_c = get_player_preview_color(i, multiplayer_pending_life_delta);
+                    preview_c = get_player_preview_color(color_i, multiplayer_pending_life_delta);
                     /* If preview color would blend into bg, flip */
                     if (color_is_light(bg_color) && color_is_light(preview_c))
                         preview_c = lv_color_black();
@@ -128,7 +128,7 @@ static void refresh_multiplayer_4p_ui(void)
     int i;
 
     for (i = 0; i < MULTIPLAYER_COUNT; i++) {
-        refresh_mp_panel(multiplayer_quadrants[i], label_multiplayer_life[i], label_multiplayer_name[i], i);
+        refresh_mp_panel(multiplayer_quadrants[i], label_multiplayer_life[i], label_multiplayer_name[i], i, i);
         if (label_multiplayer_life[i] != NULL) {
             lv_obj_clear_flag(label_multiplayer_life[i], LV_OBJ_FLAG_HIDDEN);
             lv_obj_align(label_multiplayer_life[i], LV_ALIGN_CENTER, 0, do_rot ? -30 : -12);
@@ -144,10 +144,14 @@ static void refresh_multiplayer_4p_ui(void)
 
 static void refresh_multiplayer_2p_ui(void)
 {
+    /* Panel 0 = top = P2 (player 1), Panel 1 = bottom = P1 (player 0) */
+    static const int panel_player[2] = {1, 0};
+    static const int panel_color[2]  = {0, 1};
     bool do_rot = nvs_get_rotation();
     int i;
     for (i = 0; i < 2; i++) {
-        refresh_mp_panel(mp2_panels[i], label_mp2_life[i], label_mp2_name[i], i);
+        refresh_mp_panel(mp2_panels[i], label_mp2_life[i], label_mp2_name[i],
+                         panel_player[i], panel_color[i]);
         apply_label_rotation(label_mp2_life[i], label_mp2_name[i],
             (i == 0 && do_rot) ? 1800 : 0, 10, -30);
     }
@@ -160,7 +164,7 @@ static void refresh_multiplayer_3p_ui(void)
     int i;
 
     for (i = 0; i < 3; i++) {
-        refresh_mp_panel(multiplayer_quadrants[i], label_multiplayer_life[i], label_multiplayer_name[i], i);
+        refresh_mp_panel(multiplayer_quadrants[i], label_multiplayer_life[i], label_multiplayer_name[i], i, i);
         if (label_multiplayer_life[i] != NULL)
             lv_obj_align(label_multiplayer_life[i], LV_ALIGN_CENTER, 0, do_rot ? -30 : -12);
         if (label_multiplayer_name[i] != NULL)
@@ -426,7 +430,9 @@ void build_multiplayer_all_damage_screen(void)
 // ---------- 2-player screen (top/bottom split) ----------
 void build_multiplayer_2p_screen(void)
 {
+    /* Panel 0 = top = P2, Panel 1 = bottom = P1 */
     static const lv_coord_t panel_y[2] = {0, 182};
+    static const int panel_player[2] = {1, 0};
     int i;
 
     screen_2p = lv_obj_create(NULL);
@@ -436,6 +442,7 @@ void build_multiplayer_2p_screen(void)
     lv_obj_set_scrollbar_mode(screen_2p, LV_SCROLLBAR_MODE_OFF);
 
     for (i = 0; i < 2; i++) {
+        int p = panel_player[i];
         mp2_panels[i] = lv_btn_create(screen_2p);
         lv_obj_remove_style_all(mp2_panels[i]);
         lv_obj_set_style_bg_opa(mp2_panels[i], LV_OPA_COVER, 0);
@@ -445,11 +452,11 @@ void build_multiplayer_2p_screen(void)
         lv_obj_set_style_border_width(mp2_panels[i], 1, 0);
         lv_obj_set_style_border_color(mp2_panels[i], lv_color_black(), 0);
         lv_obj_set_style_shadow_width(mp2_panels[i], 0, 0);
-        lv_obj_add_event_cb(mp2_panels[i], event_multiplayer_select, LV_EVENT_CLICKED, (void *)(intptr_t)i);
-        lv_obj_add_event_cb(mp2_panels[i], event_multiplayer_open_menu, LV_EVENT_LONG_PRESSED, (void *)(intptr_t)i);
+        lv_obj_add_event_cb(mp2_panels[i], event_multiplayer_select, LV_EVENT_CLICKED, (void *)(intptr_t)p);
+        lv_obj_add_event_cb(mp2_panels[i], event_multiplayer_open_menu, LV_EVENT_LONG_PRESSED, (void *)(intptr_t)p);
 
         label_mp2_name[i] = lv_label_create(mp2_panels[i]);
-        lv_label_set_text(label_mp2_name[i], multiplayer_names[i]);
+        lv_label_set_text(label_mp2_name[i], multiplayer_names[p]);
         lv_obj_set_style_text_color(label_mp2_name[i], lv_color_white(), 0);
         lv_obj_set_style_text_font(label_mp2_name[i], &lv_font_montserrat_14, 0);
         lv_obj_align(label_mp2_name[i], LV_ALIGN_CENTER, 0, 30);
