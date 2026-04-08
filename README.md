@@ -1,42 +1,46 @@
-Hi, this is a non-commercial hobby project. I'm not associated with any company.
+# 🟢 Knobby Life Counter 
+
+This is a non-commercial hobby project. Contributors are not associated with any company.
+
+> [!Note]
+> Full disclosure: this was programmed with the help of  generative AI
+
+## ⚡ Features
+
+Features/intended use:
+- Life counter for Magic: the Gathering or other TCGs
+- Life tracking from -999 to 999 with delta being shown as preview for 4 seconds
+- Commander damage for up to 4 players, damage to all players
+- Game timer (hours:minutes) and turn counter
+- Brightness and battery guesstimate (WIP)
+- D20 dice roll
+
+## 🚀 Getting Started
+
+TODO - cover menu interaction, etc, etc
+
+## ⚙️ Hardware
 
 This is the hardware I’ve used: JC3636K518 with battery, you can find it on AliExpress.
-hardware:
-1.8 inch display, resolution 360*360
-display driver: ST77916
-touch: CST816
-cpu: 240 MHz
-platform: ESP32
 
-IMPORTANT: this uses LVGL library version 8.4 the newest version breaks stuff.
+Specifications:
+1.8 inch display, resolution 360*360
+Display driver: ST77916
+Touch: CST816
+CPU: 240 MHz
+Platform: ESP32
 
 The one from waveshare might be identical: 
-https://www.waveshare.com/wiki/ESP32-S3-Knob-Touch-LCD-1.8 I’ve flashed their demo firmware and it works.
+https://www.waveshare.com/wiki/ESP32-S3-Knob-Touch-LCD-1.8
 
-features/intended use:
-- life counter for Magic: the Gathering or other TCGs
-
-- life tracking from -999 to 999 with delta being shown as preview for 4 seconds
-
-- commander damage for up to 4 players, damage to all players
-
-- game timer (hours:minutes) and turn counter
-
-- brightness and battery guesstimate (honestly, I could use some help with that)
-
-- d20 dice
-
-- cpu is back at 240 MHz to reduce glitches, testing real life battery performance right now.
-
-Full disclosure: this was programmed with the help of a generative AI because I've only started to learn how to do this.
-You're welcome to contribute, change stuff! I don't think I have the time or the skills to implement all the features that have been requested.
-
-## Building and Flashing (Work in Progress)
+## 🛠️ Building and Flashing
 
 ### Using arduino-cli
 
-Install [arduino-cli](https://docs.arduino.cc/arduino-cli/installation/), then install the ESP32 core and required libraries:
-```
+Install [arduino-cli](https://docs.arduino.cc/arduino-cli/installation/)
+
+**Dependencies:**
+```bash
 arduino-cli core update-index --additional-urls https://espressif.github.io/arduino-esp32/package_esp32_index.json
 arduino-cli core install esp32:esp32 --additional-urls https://espressif.github.io/arduino-esp32/package_esp32_index.json
 arduino-cli lib install lvgl@8.3.11
@@ -46,16 +50,19 @@ arduino-cli lib install esp-lib-utils@0.1.2
 ```
 
 **Compile:**
-```
+```bash
 arduino-cli compile \
   --fqbn "esp32:esp32:esp32s3:FlashSize=16M,PSRAM=opi,USBMode=hwcdc,CDCOnBoot=cdc,FlashMode=qio" \
+```
+
+**Flash** (replace {port} with your device's port from `arduino-cli board list`):
+```bash
+arduino-cli upload \
+  --fqbn "esp32:esp32:esp32s3:FlashSize=16M,PSRAM=opi,USBMode=hwcdc,CDCOnBoot=cdc,FlashMode=qio" \
+  -p {port} \
   knobby
 ```
 
-**Flash** (replace the port with your device's port from `arduino-cli board list`):
-```
-arduino-cli upload \
-  --fqbn "esp32:esp32:esp32s3:FlashSize=16M,PSRAM=opi,USBMode=hwcdc,CDCOnBoot=cdc,FlashMode=qio" \
-  -p /dev/cu.usbmodem1 \
-  knobby
-```
+## Contributing
+
+See [CONTRIBUTING.md](CONTRIBUTING.md)

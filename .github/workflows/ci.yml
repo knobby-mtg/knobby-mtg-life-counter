@@ -1,0 +1,40 @@
+name: CI
+
+on: 
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v6
+      
+      - name: Setup Arduino CLI
+        uses: arduino/setup-arduino-cli@v2
+
+      - name: Cache arduino cores and libraries
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.arduino15/packages
+            ~/Arduino/libraries
+          key: ${{ runner.os }}-arduino-deps-${{ hashFiles('README.md') }}
+          restore-keys: |
+            ${{ runner.os }}-arduino-deps-
+
+      - name: Install cores and libraries
+        run: |
+          arduino-cli core update-index --additional-urls https://espressif.github.io/arduino-esp32/package_esp32_index.json
+          arduino-cli core install esp32:esp32 --additional-urls https://espressif.github.io/arduino-esp32/package_esp32_index.json
+          arduino-cli lib install lvgl@8.3.11
+          arduino-cli lib install ESP32_Display_Panel@1.0.0
+          arduino-cli lib install ESP32_IO_Expander@1.0.1
+          arduino-cli lib install esp-lib-utils@0.1.2
+
+      - name: Compile with arduino-cli
+        run: |
+          arduino-cli compile --fqbn "esp32:esp32:esp32s3:FlashSize=16M,PSRAM=opi,USBMode=hwcdc,CDCOnBoot=cdc,FlashMode=qio" knobby
