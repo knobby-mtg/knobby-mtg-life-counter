@@ -1,0 +1,64 @@
+# Common gitignore for Arduino / C / ESP32 projects
+# Ignore build artifacts, temporary files, and IDE metadata
+
+# Build folders
+build/
+build_tmp/
+dist_bin/
+
+# PlatformIO
+.pio/
+.pioenvs/
+.pio/build/
+.pio/libdeps/
+
+# Arduino CLI / IDE
+.arduino15/
+.arduino/
+arduino_debug/
+
+# ESP-IDF / ESP32
+sdkconfig
+sdkconfig.old
+sdkconfig.defaults
+sdkconfig.*.bak
+esp-idf/build/
+idf_build/
+
+# Compiled object files, binaries and maps
+*.elf
+*.bin
+*.hex
+*.map
+*.o
+*.obj
+*.a
+*.lib
+*.sym
+*.lst
+
+# IDE / editor metadata
+.vscode/
+.vscode/*
+.history/
+
+# OS files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Python
+__pycache__/
+*.pyc
+
+# Logs and archives
+*.log
+*.zip
+*.tar.gz
+
+# Libraries built by build systems (ignore generated libs, keep source in repo)
+build/libraries/
+.pio/libdeps/
+
+# Misc
+*.tmp

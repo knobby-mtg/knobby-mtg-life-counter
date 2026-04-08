@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Knobby MTG Life Counter - Web Installer</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      text-align: center;
+      padding: 50px;
+      background-color: #121212;
+      color: #e0e0e0;
+    }
+    h1 { color: #ffffff; }
+    .container {
+      max-width: 600px;
+      margin: 0 auto;
+      background: #1e1e1e;
+      padding: 30px;
+      border-radius: 8px;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+    }
+    p { line-height: 1.6; }
+    esp-web-install-button { margin-top: 20px; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Knobby Web Installer</h1>
+    <p>Connect your Knobby device via USB, then click the button below to flash the latest firmware directly from your browser.</p>
+    <p><em>Note: This requires a Web Serial compatible browser like Chrome, Edge, or Opera.</em></p>
+    <script type="module" src="https://unpkg.com/esp-web-tools@10.0.1/dist/web/install-button.js?module"></script>
+    <esp-web-install-button manifest="manifest.json"></esp-web-install-button>
+  </div>
+</body>
+</html>

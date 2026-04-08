@@ -1,0 +1,82 @@
+name: Release Firmware
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      
+      - name: Setup Arduino CLI
+        uses: arduino/setup-arduino-cli@v2
+
+      - name: Cache arduino cores and libraries
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.arduino15/packages
+            ~/Arduino/libraries
+          key: ${{ runner.os }}-arduino-deps-${{ hashFiles('README.md') }}
+          restore-keys: |
+            ${{ runner.os }}-arduino-deps-
+
+      - name: Install cores and libraries
+        run: |
+          arduino-cli core update-index --additional-urls https://espressif.github.io/arduino-esp32/package_esp32_index.json
+          arduino-cli core install esp32:esp32 --additional-urls https://espressif.github.io/arduino-esp32/package_esp32_index.json
+          arduino-cli lib install lvgl@8.3.11
+          arduino-cli lib install ESP32_Display_Panel@1.0.0
+          arduino-cli lib install ESP32_IO_Expander@1.0.1
+          arduino-cli lib install esp-lib-utils@0.1.2
+
+      - name: Compile with arduino-cli
+        run: |
+          arduino-cli compile --fqbn "esp32:esp32:esp32s3:FlashSize=16M,PSRAM=opi,USBMode=hwcdc,CDCOnBoot=cdc,FlashMode=qio" --export-binaries knobby
+
+      - name: Prepare Web Site
+        run: |
+          # Copy exported binaries into the static web directory
+          cp knobby/build/esp32.esp32.esp32s3/*.bin web/
+          # Update version in manifest.json to match the tag
+          sed -i "s/\"latest\"/\"${{ github.ref_name }}\"/g" web/manifest.json
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: web
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
+
+      - name: Zip binaries for GitHub Release
+        run: |
+          cd web
+          zip -r ../knobby-firmware-${{ github.ref_name }}.zip knobby.ino.bootloader.bin knobby.ino.partitions.bin boot_app0.bin knobby.ino.bin manifest.json
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: knobby-firmware-${{ github.ref_name }}.zip
+          generate_release_notes: true
