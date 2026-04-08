@@ -18,7 +18,6 @@ void build_multiplayer_menu_screen(void);
 void build_multiplayer_all_damage_screen(void);
 
 void refresh_multiplayer_ui(void);
-void refresh_multiplayer_menu_ui(void);
 void refresh_multiplayer_all_damage_ui(void);
 
 void open_multiplayer_screen(void);

@@ -22,6 +22,12 @@ static lv_obj_t *btn_name_save = NULL;
 static bool name_keyboard_mode = false;
 static int mru_selected = 0;
 
+// ---------- rename-all state ----------
+static bool rename_all_active = false;
+static int rename_all_start = 0;
+static int rename_all_count = 0;
+static int rename_all_done = 0;
+
 // ---------- forward declarations ----------
 static void refresh_mru_list_ui(void);
 static void update_mru_highlight(void);
@@ -65,6 +71,22 @@ static void mru_use_name(const char *name)
     settings_save();
 }
 
+// ---------- rename-all advance ----------
+static void rename_all_advance(void)
+{
+    rename_all_done++;
+    if (rename_all_done < rename_all_count) {
+        int next = (rename_all_start + rename_all_done) % rename_all_count;
+        multiplayer_menu_player = next;
+        open_rename_screen();
+    } else {
+        rename_all_active = false;
+        refresh_select_ui();
+        refresh_damage_ui();
+        open_multiplayer_screen();
+    }
+}
+
 // ---------- apply + return ----------
 static void apply_name_and_return(const char *name)
 {
@@ -72,11 +94,15 @@ static void apply_name_and_return(const char *name)
              sizeof(multiplayer_names[multiplayer_menu_player]), "%s", name);
     mru_use_name(name);
     refresh_multiplayer_ui();
-    refresh_multiplayer_menu_ui();
-    refresh_rename_ui();
-    refresh_select_ui();
-    refresh_damage_ui();
-    open_multiplayer_menu_screen(multiplayer_menu_player);
+
+    if (rename_all_active) {
+        rename_all_advance();
+    } else {
+        refresh_rename_ui();
+        refresh_select_ui();
+        refresh_damage_ui();
+        open_multiplayer_menu_screen(multiplayer_menu_player);
+    }
 }
 
 // ---------- events ----------
@@ -94,11 +120,14 @@ static void event_name_save(lv_event_t *e)
                  sizeof(multiplayer_names[multiplayer_menu_player]),
                  "P%d", multiplayer_menu_player + 1);
         refresh_multiplayer_ui();
-        refresh_multiplayer_menu_ui();
-        refresh_rename_ui();
-        refresh_select_ui();
-        refresh_damage_ui();
-        open_multiplayer_menu_screen(multiplayer_menu_player);
+        if (rename_all_active) {
+            rename_all_advance();
+        } else {
+            refresh_rename_ui();
+            refresh_select_ui();
+            refresh_damage_ui();
+            open_multiplayer_menu_screen(multiplayer_menu_player);
+        }
     } else {
         apply_name_and_return(txt);
     }
@@ -107,8 +136,11 @@ static void event_name_save(lv_event_t *e)
 static void event_mru_select(lv_event_t *e)
 {
     (void)e;
-    if (mru_selected < mru_count) {
-        apply_name_and_return(mru_names[mru_selected]);
+    if (mru_selected == 0) {
+        /* Current name row — re-apply as-is */
+        apply_name_and_return(multiplayer_names[multiplayer_menu_player]);
+    } else if (mru_selected <= mru_count) {
+        apply_name_and_return(mru_names[mru_selected - 1]);
     } else {
         name_screen_show_keyboard();
         refresh_rename_ui();
@@ -118,8 +150,11 @@ static void event_mru_select(lv_event_t *e)
 static void event_mru_row_click(lv_event_t *e)
 {
     int idx = (int)(intptr_t)lv_event_get_user_data(e);
-    if (idx < mru_count) {
-        apply_name_and_return(mru_names[idx]);
+    if (idx == 0) {
+        /* Current name row */
+        apply_name_and_return(multiplayer_names[multiplayer_menu_player]);
+    } else if (idx <= mru_count) {
+        apply_name_and_return(mru_names[idx - 1]);
     } else {
         name_screen_show_keyboard();
         refresh_rename_ui();
@@ -127,6 +162,22 @@ static void event_mru_row_click(lv_event_t *e)
 }
 
 // ---------- MRU list UI ----------
+static void add_list_row(int idx, const char *text, lv_color_t color)
+{
+    lv_obj_t *row = lv_obj_create(mru_list_container);
+    lv_obj_remove_style_all(row);
+    lv_obj_set_size(row, 280, 28);
+    lv_obj_set_style_radius(row, 4, 0);
+    lv_obj_add_flag(row, LV_OBJ_FLAG_CLICKABLE);
+    lv_obj_add_event_cb(row, event_mru_row_click, LV_EVENT_CLICKED, (void *)(intptr_t)idx);
+
+    lv_obj_t *lbl = lv_label_create(row);
+    lv_label_set_text(lbl, text);
+    lv_obj_set_style_text_color(lbl, color, 0);
+    lv_obj_set_style_text_font(lbl, &lv_font_montserrat_16, 0);
+    lv_obj_align(lbl, LV_ALIGN_LEFT_MID, 8, 0);
+}
+
 static void refresh_mru_list_ui(void)
 {
     int i, total;
@@ -134,27 +185,13 @@ static void refresh_mru_list_ui(void)
     if (mru_list_container == NULL) return;
 
     lv_obj_clean(mru_list_container);
-    total = mru_count + 1; /* +1 for "Type new..." */
+    /* row 0 = current name, rows 1..mru_count = MRU, last = "Type new..." */
+    total = 1 + mru_count + 1;
 
-    for (i = 0; i < total; i++) {
-        lv_obj_t *row = lv_obj_create(mru_list_container);
-        lv_obj_remove_style_all(row);
-        lv_obj_set_size(row, 280, 28);
-        lv_obj_set_style_radius(row, 4, 0);
-        lv_obj_add_flag(row, LV_OBJ_FLAG_CLICKABLE);
-        lv_obj_add_event_cb(row, event_mru_row_click, LV_EVENT_CLICKED, (void *)(intptr_t)i);
-
-        lv_obj_t *lbl = lv_label_create(row);
-        if (i < mru_count) {
-            lv_label_set_text(lbl, mru_names[i]);
-            lv_obj_set_style_text_color(lbl, lv_color_white(), 0);
-        } else {
-            lv_label_set_text(lbl, "Type new...");
-            lv_obj_set_style_text_color(lbl, lv_color_hex(0x7A7A7A), 0);
-        }
-        lv_obj_set_style_text_font(lbl, &lv_font_montserrat_16, 0);
-        lv_obj_align(lbl, LV_ALIGN_LEFT_MID, 8, 0);
-    }
+    add_list_row(0, multiplayer_names[multiplayer_menu_player], lv_color_hex(0x80CBC4));
+    for (i = 0; i < mru_count; i++)
+        add_list_row(1 + i, mru_names[i], lv_color_white());
+    add_list_row(total - 1, "Type new...", lv_color_hex(0x7A7A7A));
 
     if (mru_selected >= total) mru_selected = total - 1;
     if (mru_selected < 0) mru_selected = 0;
@@ -166,7 +203,7 @@ static void refresh_mru_list_ui(void)
 static void update_mru_highlight(void)
 {
     int i;
-    int total = mru_count + 1;
+    int total = 1 + mru_count + 1;
     uint32_t child_count = lv_obj_get_child_cnt(mru_list_container);
 
     for (i = 0; i < (int)child_count && i < total; i++) {
@@ -219,7 +256,7 @@ static void name_screen_show_keyboard(void)
 void mru_select_next(void)
 {
     if (name_keyboard_mode) return;
-    if (mru_selected < mru_count) {
+    if (mru_selected < mru_count + 1) {
         mru_selected++;
         update_mru_highlight();
     }
@@ -239,6 +276,11 @@ bool name_screen_handle_back(void)
     if (name_keyboard_mode) {
         name_screen_show_list();
         refresh_rename_ui();
+        return true;
+    }
+    if (rename_all_active) {
+        rename_all_active = false;
+        open_multiplayer_screen();
         return true;
     }
     return false;
@@ -272,6 +314,15 @@ void open_rename_screen(void)
     name_screen_show_list();
     refresh_rename_ui();
     load_screen_if_needed(screen_player_name);
+}
+
+void open_rename_all_screen(void)
+{
+    rename_all_active = true;
+    rename_all_start = multiplayer_menu_player;
+    rename_all_count = nvs_get_players_to_track();
+    rename_all_done = 0;
+    open_rename_screen();
 }
 
 // ---------- build ----------

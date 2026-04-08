@@ -50,7 +50,7 @@ void reset_all_values(void)
     refresh_damage_ui();
     refresh_settings_ui();
     refresh_multiplayer_ui();
-    refresh_multiplayer_menu_ui();
+
     refresh_rename_ui();
     refresh_multiplayer_all_damage_ui();
 }
@@ -88,7 +88,7 @@ void knob_gui(void)
 
     refresh_main_ui();
     refresh_multiplayer_ui();
-    refresh_multiplayer_menu_ui();
+
     refresh_rename_ui();
     refresh_select_ui();
     refresh_damage_ui();

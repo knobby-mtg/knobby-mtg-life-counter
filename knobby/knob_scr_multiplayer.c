@@ -4,6 +4,7 @@
 #include "knob_nvs.h"
 #include "knob_damage_log.h"
 #include "knob_rename.h"
+#include "knob_scr_menus.h"
 
 // ---------- screens ----------
 lv_obj_t *screen_4p = NULL;
@@ -16,7 +17,6 @@ lv_obj_t *screen_player_all_damage = NULL;
 static lv_obj_t *multiplayer_quadrants[MULTIPLAYER_COUNT];
 static lv_obj_t *label_multiplayer_life[MULTIPLAYER_COUNT];
 static lv_obj_t *label_multiplayer_name[MULTIPLAYER_COUNT];
-static lv_obj_t *label_multiplayer_menu_title = NULL;
 static lv_obj_t *label_multiplayer_all_damage_title = NULL;
 static lv_obj_t *label_multiplayer_all_damage_value = NULL;
 static lv_obj_t *label_multiplayer_all_damage_hint = NULL;
@@ -187,16 +187,6 @@ void refresh_multiplayer_ui(void)
     refresh_multiplayer_4p_ui();
 }
 
-void refresh_multiplayer_menu_ui(void)
-{
-    char buf[32];
-
-    if (label_multiplayer_menu_title == NULL) return;
-
-    snprintf(buf, sizeof(buf), "%s menu", multiplayer_names[multiplayer_menu_player]);
-    lv_label_set_text(label_multiplayer_menu_title, buf);
-}
-
 void refresh_multiplayer_all_damage_ui(void)
 {
     char buf[32];
@@ -223,7 +213,6 @@ void open_multiplayer_screen(void)
 void open_multiplayer_menu_screen(int player_index)
 {
     multiplayer_menu_player = player_index;
-    refresh_multiplayer_menu_ui();
     load_screen_if_needed(screen_player_menu);
 }
 
@@ -313,6 +302,12 @@ static void event_multiplayer_menu_rename(lv_event_t *e)
     open_rename_screen();
 }
 
+static void event_multiplayer_menu_rename_all(lv_event_t *e)
+{
+    (void)e;
+    open_rename_all_screen();
+}
+
 static void event_multiplayer_menu_cmd_damage(lv_event_t *e)
 {
     (void)e;
@@ -387,25 +382,17 @@ void build_multiplayer_screen(void)
 
 void build_multiplayer_menu_screen(void)
 {
-    screen_player_menu = lv_obj_create(NULL);
-    lv_obj_set_size(screen_player_menu, 360, 360);
-    lv_obj_set_style_bg_color(screen_player_menu, lv_color_black(), 0);
-    lv_obj_set_style_border_width(screen_player_menu, 0, 0);
-    lv_obj_set_scrollbar_mode(screen_player_menu, LV_SCROLLBAR_MODE_OFF);
+    quad_item_t items[4] = {
+        {"Rename",      event_multiplayer_menu_rename,     true,  LV_EVENT_CLICKED},
+        {"Cmd\nDamage", event_multiplayer_menu_cmd_damage, true,  LV_EVENT_CLICKED},
+        {"All\nDamage", event_multiplayer_menu_all_damage, true,  LV_EVENT_CLICKED},
+        {"",            NULL,                              false, LV_EVENT_CLICKED},
+    };
+    build_quad_screen(&screen_player_menu, items);
 
-    label_multiplayer_menu_title = lv_label_create(screen_player_menu);
-    lv_obj_set_style_text_color(label_multiplayer_menu_title, lv_color_white(), 0);
-    lv_obj_set_style_text_font(label_multiplayer_menu_title, &lv_font_montserrat_22, 0);
-    lv_obj_align(label_multiplayer_menu_title, LV_ALIGN_TOP_MID, 0, 26);
-
-    lv_obj_t *btn = make_button(screen_player_menu, "rename", 180, 46, event_multiplayer_menu_rename);
-    lv_obj_align(btn, LV_ALIGN_CENTER, 0, -36);
-
-    btn = make_button(screen_player_menu, "Cmd.dmg", 180, 46, event_multiplayer_menu_cmd_damage);
-    lv_obj_align(btn, LV_ALIGN_CENTER, 0, 24);
-
-    btn = make_button(screen_player_menu, "all.dmg", 180, 46, event_multiplayer_menu_all_damage);
-    lv_obj_align(btn, LV_ALIGN_CENTER, 0, 84);
+    /* Long-press Rename to rename all players sequentially */
+    lv_obj_t *rename_btn = lv_obj_get_child(screen_player_menu, 0);
+    lv_obj_add_event_cb(rename_btn, event_multiplayer_menu_rename_all, LV_EVENT_LONG_PRESSED, NULL);
 }
 
 void build_multiplayer_all_damage_screen(void)
