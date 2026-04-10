@@ -152,7 +152,13 @@ static void set_btn_color(lv_obj_t *btn, uint32_t color)
     if (btn != NULL) lv_obj_set_style_bg_color(btn, lv_color_hex(color), 0);
 }
 
-static uint32_t autodim_color(bool on) { return on ? TOGGLE_ON : TOGGLE_OFF; }
+static uint32_t autodim_color(int index)
+{
+    static const uint32_t colors[AUTO_DIM_COUNT] = {
+        0x37474F, 0x1B5E20, 0x0D47A1, 0x4A148C  /* grey, green, blue, purple */
+    };
+    return (index >= 0 && index < AUTO_DIM_COUNT) ? colors[index] : 0x37474F;
+}
 static uint32_t orientation_color(int mode)
 {
     switch (mode) {
@@ -187,19 +193,29 @@ static void event_screen_brightness(lv_event_t *e)
     open_settings_screen();
 }
 
+static const char *autodim_label(int index)
+{
+    switch (index) {
+        case AUTO_DIM_15S: return "Auto-dim\n15s";
+        case AUTO_DIM_30S: return "Auto-dim\n30s";
+        case AUTO_DIM_60S: return "Auto-dim\n60s";
+        default:           return "Auto-dim\nOFF";
+    }
+}
+
 static void event_screen_autodim(lv_event_t *e)
 {
     (void)e;
-    auto_dim_enabled = !auto_dim_enabled;
-    nvs_set_auto_dim(auto_dim_enabled);
-    if (!auto_dim_enabled && dimmed) {
+    auto_dim_setting = (auto_dim_setting + 1) % AUTO_DIM_COUNT;
+    nvs_set_auto_dim(auto_dim_setting);
+    if (auto_dim_setting == AUTO_DIM_OFF && dimmed) {
         dimmed = false;
         brightness_apply();
     }
     if (label_autodim_quad) {
-        lv_label_set_text(label_autodim_quad, auto_dim_enabled ? "Auto-dim\nON" : "Auto-dim\nOFF");
+        lv_label_set_text(label_autodim_quad, autodim_label(auto_dim_setting));
     }
-    set_btn_color(btn_autodim, autodim_color(auto_dim_enabled));
+    set_btn_color(btn_autodim, autodim_color(auto_dim_setting));
 }
 
 static const char *color_mode_label(int mode)
@@ -333,7 +349,7 @@ void build_quad_menus(void)
 
     quad_item_t screen_items[4] = {
         {"Brightness", event_screen_brightness, true, LV_EVENT_CLICKED},
-        {auto_dim_enabled ? "Auto-dim\nON" : "Auto-dim\nOFF", event_screen_autodim, true, LV_EVENT_CLICKED},
+        {autodim_label(auto_dim_setting), event_screen_autodim, true, LV_EVENT_CLICKED},
         {"Battery",       event_screen_battery, true, LV_EVENT_CLICKED},
         {"More",          event_screen_more, true, LV_EVENT_CLICKED},
     };
@@ -341,7 +357,7 @@ void build_quad_menus(void)
 
     btn_autodim = lv_obj_get_child(screen_screen_settings_menu, 1);
     label_autodim_quad = lv_obj_get_child(btn_autodim, 0);
-    set_btn_color(btn_autodim, autodim_color(auto_dim_enabled));
+    set_btn_color(btn_autodim, autodim_color(auto_dim_setting));
 
     quad_item_t page2_items[4] = {
         {color_mode_label(nvs_get_color_mode()), event_screen_color_mode, true, LV_EVENT_CLICKED},

@@ -6,7 +6,7 @@
 // ---------- cached state ----------
 static bool settings_dirty = false;
 static int cached_brightness = DEFAULT_BRIGHTNESS_PERCENT;
-static bool cached_auto_dim = false;
+static int cached_auto_dim = AUTO_DIM_OFF;
 static int cached_color_mode = 0;
 static int cached_deselect_timeout = 0; /* index: 0=never, 1=5s, 2=15s, 3=30s */
 static int cached_orientation = ORIENTATION_MODE_ABSOLUTE;
@@ -40,7 +40,7 @@ void knob_nvs_init(void)
         nvs_get_i8(handle, "track", &pt_val);
         nvs_get_i16(handle, "life_total", &lt_val);
 
-        cached_auto_dim = (dim_val != 0);
+        cached_auto_dim = (dim_val < 0) ? 0 : (dim_val >= AUTO_DIM_COUNT) ? 0 : dim_val;
         cached_color_mode = lc_val;
         cached_deselect_timeout = (dt_val < 0) ? 0 : (dt_val > 3) ? 3 : dt_val;
         cached_orientation = (rot_val < 0) ? ORIENTATION_MODE_ABSOLUTE
@@ -66,7 +66,7 @@ int nvs_get_brightness(void)
     return cached_brightness;
 }
 
-bool nvs_get_auto_dim(void)
+int nvs_get_auto_dim(void)
 {
     return cached_auto_dim;
 }
@@ -78,9 +78,11 @@ void nvs_set_brightness(int value)
     settings_dirty = true;
 }
 
-void nvs_set_auto_dim(bool value)
+void nvs_set_auto_dim(int value)
 {
-    cached_auto_dim = value;
+    cached_auto_dim = (value < 0) ? AUTO_DIM_OFF
+                    : (value >= AUTO_DIM_COUNT) ? AUTO_DIM_OFF
+                    : value;
     settings_dirty = true;
 }
 
@@ -171,7 +173,7 @@ void settings_save(void)
     if (!settings_dirty) return;
     nvs_handle_t handle;
     if (nvs_open("knobby", NVS_READWRITE, &handle) == ESP_OK) {
-        nvs_set_i8(handle, "auto_dim", cached_auto_dim ? 1 : 0);
+        nvs_set_i8(handle, "auto_dim", (int8_t)cached_auto_dim);
         nvs_set_i8(handle, "brightness", (int8_t)cached_brightness);
         nvs_set_i8(handle, "color_mode", (int8_t)cached_color_mode);
         nvs_set_i8(handle, "desel_time", (int8_t)cached_deselect_timeout);

@@ -5,14 +5,13 @@
 
 // ---------- state ----------
 extern int brightness_percent;
-extern bool auto_dim_enabled;
+extern int auto_dim_setting;
 extern bool dimmed;
 extern float battery_voltage;
 extern int battery_percent;
 
 // ---------- tunable power / timing constants (shared) ----------
-// Increase AUTO_DIM_TIMEOUT_MS to reduce how often the device dims.
-#define AUTO_DIM_TIMEOUT_MS     30000   /* ms idle before display dims */
+// Auto-dim timeout is now configurable via NVS (see auto_dim_ms[] in knob_types.h).
 // Reducing AUTO_DIM_BRIGHTNESS below 5 further cuts backlight draw while dimmed.
 #define AUTO_DIM_BRIGHTNESS     5       /* % brightness while dimmed */
 // UNDIM_GRACE_MS suppresses input for this long after wake to avoid accidental presses.
