@@ -2,6 +2,7 @@
 #include "esp_bt.h"
 #include "esp_sleep.h"
 #include "driver/gpio.h"
+#include "soc/usb_serial_jtag_struct.h"
 
 #include "scr_st77916.h"
 #include <lvgl.h>
@@ -86,6 +87,17 @@ void setup()
 // Below this threshold we fall back to vTaskDelay to avoid sleep/wake overhead.
 #define ACTIVE_SLEEP_MIN_MS 10U
 
+// Detect active USB host by checking if the SOF frame counter is advancing.
+// USB hosts send Start-of-Frame every 1ms; a changing counter means plugged in.
+static bool usb_host_active(void)
+{
+  static uint32_t prev_sof = 0;
+  uint32_t sof = USB_SERIAL_JTAG.fram_num.sof_frame_index;
+  bool active = (sof != prev_sof);
+  prev_sof = sof;
+  return active;
+}
+
 void loop()
 {
   uint32_t time_till_next;
@@ -93,7 +105,7 @@ void loop()
   knob_process_pending();
   time_till_next = lv_timer_handler();
 
-  if (time_till_next >= ACTIVE_SLEEP_MIN_MS) {
+  if (time_till_next >= ACTIVE_SLEEP_MIN_MS && !usb_host_active()) {
     uint8_t level_a = gpio_get_level((gpio_num_t)ROTARY_ENC_PIN_A);
     uint8_t level_b = gpio_get_level((gpio_num_t)ROTARY_ENC_PIN_B);
     gpio_wakeup_enable((gpio_num_t)ROTARY_ENC_PIN_A, level_a ? GPIO_INTR_LOW_LEVEL : GPIO_INTR_HIGH_LEVEL);
