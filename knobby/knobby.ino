@@ -85,6 +85,8 @@ void setup()
 // Minimum idle interval before using light sleep.
 // Below this threshold we fall back to vTaskDelay to avoid sleep/wake overhead.
 #define ACTIVE_SLEEP_MIN_MS 10U
+// Delay light sleep after boot so the USB-CDC port stays available for flashing.
+#define SLEEP_BOOT_DELAY_MS 60000U
 
 void loop()
 {
@@ -93,7 +95,7 @@ void loop()
   knob_process_pending();
   time_till_next = lv_timer_handler();
 
-  if (time_till_next >= ACTIVE_SLEEP_MIN_MS) {
+  if (time_till_next >= ACTIVE_SLEEP_MIN_MS && millis() >= SLEEP_BOOT_DELAY_MS) {
     uint8_t level_a = gpio_get_level((gpio_num_t)ROTARY_ENC_PIN_A);
     uint8_t level_b = gpio_get_level((gpio_num_t)ROTARY_ENC_PIN_B);
     gpio_wakeup_enable((gpio_num_t)ROTARY_ENC_PIN_A, level_a ? GPIO_INTR_LOW_LEVEL : GPIO_INTR_HIGH_LEVEL);
