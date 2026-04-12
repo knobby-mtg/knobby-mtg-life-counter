@@ -368,10 +368,11 @@ static void touchpad_read(lv_indev_drv_t *indev_drv, lv_indev_data_t *data)
   {
     bool was_dimmed = activity_kick();
     if (was_dimmed) {
-      data->state = LV_INDEV_STATE_RELEASED;
+      // Reset swipe context on wake, but don't discard the touch
       tp_tracking = false;
       tp_swiped = false;
-    } else if (tp_swiped) {
+    }
+    if (tp_swiped) {
       data->state = LV_INDEV_STATE_RELEASED;
     } else {
       data->point.x = point.x;
