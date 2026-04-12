@@ -12,6 +12,8 @@ lv_obj_t *screen_player_all_damage = NULL;
 lv_obj_t *screen_counter_menu = NULL;
 lv_obj_t *screen_counter_edit = NULL;
 lv_obj_t *screen_eliminated_player_menu = NULL;
+lv_obj_t *screen_player_color_menu = NULL;
+lv_obj_t *screen_player_color_picker = NULL;
 
 // ---------- widgets ----------
 static lv_obj_t *label_all_damage_title = NULL;
@@ -193,20 +195,89 @@ static void event_counter_apply(lv_event_t *e)
     back_to_main();
 }
 
+// ---------- per-player color ----------
+static lv_obj_t *color_picker_swatch = NULL;
+static lv_obj_t *color_picker_name_label = NULL;
+static lv_obj_t *color_picker_title_label = NULL;
+static int color_picker_index = 0;
+
+static void event_menu_color(lv_event_t *e)
+{
+    (void)e;
+    load_screen_if_needed(screen_player_color_menu);
+}
+
+static void event_color_default(lv_event_t *e)
+{
+    (void)e;
+    player_has_override[menu_player] = false;
+    player_life_color[menu_player] = false;
+    refresh_player_ui();
+    back_to_main();
+}
+
+static void event_color_life(lv_event_t *e)
+{
+    (void)e;
+    player_has_override[menu_player] = true;
+    player_life_color[menu_player] = true;
+    refresh_player_ui();
+    back_to_main();
+}
+
+static void event_color_custom(lv_event_t *e)
+{
+    char title_buf[32];
+    (void)e;
+    color_picker_index = player_color_index[menu_player];
+    if (color_picker_title_label != NULL) {
+        snprintf(title_buf, sizeof(title_buf), "%s\nColor", player_names[menu_player]);
+        lv_label_set_text(color_picker_title_label, title_buf);
+    }
+    if (color_picker_swatch != NULL)
+        lv_obj_set_style_bg_color(color_picker_swatch, get_custom_color_vib(color_picker_index, LIFE_VIB_MID), 0);
+    if (color_picker_name_label != NULL)
+        lv_label_set_text(color_picker_name_label, get_custom_color_name(color_picker_index));
+    load_screen_if_needed(screen_player_color_picker);
+}
+
+void change_player_color(int delta)
+{
+    color_picker_index += delta;
+    if (color_picker_index < 0) color_picker_index = CUSTOM_COLOR_COUNT - 1;
+    if (color_picker_index >= CUSTOM_COLOR_COUNT) color_picker_index = 0;
+
+    if (color_picker_swatch != NULL)
+        lv_obj_set_style_bg_color(color_picker_swatch, get_custom_color_vib(color_picker_index, LIFE_VIB_MID), 0);
+    if (color_picker_name_label != NULL)
+        lv_label_set_text(color_picker_name_label, get_custom_color_name(color_picker_index));
+}
+
+void commit_player_color(void)
+{
+    player_has_override[menu_player] = true;
+    player_color_index[menu_player] = color_picker_index;
+    player_life_color[menu_player] = false;
+    refresh_player_ui();
+}
+
+static void event_color_apply(lv_event_t *e)
+{
+    (void)e;
+    commit_player_color();
+    back_to_main();
+}
+
 // ---------- screen builders ----------
 void build_player_menu_screen(void)
 {
     quad_item_t items[4] = {
-        {"Rename",      event_menu_rename,     true,  LV_EVENT_CLICKED},
+        {"Name/\nColor", event_menu_color,     true,  LV_EVENT_CLICKED},
         {"Commander\nDamage", event_menu_cmd_damage, true,  LV_EVENT_CLICKED},
         {"All\nDamage", event_menu_all_damage, true,  LV_EVENT_CLICKED},
         {"Counters",    event_menu_counters,   true,  LV_EVENT_SHORT_CLICKED},
     };
     build_quad_screen(&screen_player_menu, items);
-
-    /* Long-press Rename to rename all players sequentially */
-    lv_obj_t *rename_btn = lv_obj_get_child(screen_player_menu, 0);
-    lv_obj_add_event_cb(rename_btn, event_menu_rename_all, LV_EVENT_LONG_PRESSED, NULL);
 
     /* Long-press Counters to manually eliminate */
     lv_obj_t *counters_btn = lv_obj_get_child(screen_player_menu, 3);
@@ -334,5 +405,63 @@ void build_counter_edit_screen(void)
     lv_obj_align(label_counter_edit_hint, LV_ALIGN_CENTER, 0, 34);
 
     btn = make_button(screen_counter_edit, "Apply", 120, 46, event_counter_apply);
+    lv_obj_align(btn, LV_ALIGN_BOTTOM_MID, 0, -46);
+}
+
+// ---------- per-player color screens ----------
+void build_player_color_menu_screen(void)
+{
+    quad_item_t items[4] = {
+        {"Rename",          event_menu_rename,   true, LV_EVENT_SHORT_CLICKED},
+        {"Default\nSetting", event_color_default, true, LV_EVENT_CLICKED},
+        {"Life\nColor",     event_color_life,    true, LV_EVENT_CLICKED},
+        {"Custom\nColor",   event_color_custom,  true, LV_EVENT_CLICKED},
+    };
+    build_quad_screen(&screen_player_color_menu, items);
+
+    /* Long-press Rename to rename all players sequentially */
+    lv_obj_t *name_btn = lv_obj_get_child(screen_player_color_menu, 0);
+    lv_obj_add_event_cb(name_btn, event_menu_rename_all, LV_EVENT_LONG_PRESSED, NULL);
+}
+
+void build_player_color_picker_screen(void)
+{
+    lv_obj_t *hint;
+
+    screen_player_color_picker = lv_obj_create(NULL);
+    lv_obj_set_size(screen_player_color_picker, 360, 360);
+    lv_obj_set_style_bg_color(screen_player_color_picker, lv_color_black(), 0);
+    lv_obj_set_style_border_width(screen_player_color_picker, 0, 0);
+    lv_obj_set_scrollbar_mode(screen_player_color_picker, LV_SCROLLBAR_MODE_OFF);
+
+    color_picker_title_label = lv_label_create(screen_player_color_picker);
+    lv_label_set_text(color_picker_title_label, "Color");
+    lv_obj_set_style_text_color(color_picker_title_label, lv_color_white(), 0);
+    lv_obj_set_style_text_font(color_picker_title_label, &lv_font_montserrat_22, 0);
+    lv_obj_set_style_text_align(color_picker_title_label, LV_TEXT_ALIGN_CENTER, 0);
+    lv_obj_align(color_picker_title_label, LV_ALIGN_TOP_MID, 0, 20);
+
+    color_picker_swatch = lv_obj_create(screen_player_color_picker);
+    lv_obj_remove_style_all(color_picker_swatch);
+    lv_obj_set_size(color_picker_swatch, 120, 120);
+    lv_obj_align(color_picker_swatch, LV_ALIGN_CENTER, 0, -15);
+    lv_obj_set_style_radius(color_picker_swatch, 12, 0);
+    lv_obj_set_style_bg_opa(color_picker_swatch, LV_OPA_COVER, 0);
+    lv_obj_set_style_bg_color(color_picker_swatch, get_custom_color_vib(0, LIFE_VIB_MID), 0);
+    lv_obj_clear_flag(color_picker_swatch, LV_OBJ_FLAG_SCROLLABLE | LV_OBJ_FLAG_CLICKABLE);
+
+    color_picker_name_label = lv_label_create(screen_player_color_picker);
+    lv_label_set_text(color_picker_name_label, get_custom_color_name(0));
+    lv_obj_set_style_text_color(color_picker_name_label, lv_color_white(), 0);
+    lv_obj_set_style_text_font(color_picker_name_label, &lv_font_montserrat_16, 0);
+    lv_obj_align(color_picker_name_label, LV_ALIGN_CENTER, 0, 54);
+
+    hint = lv_label_create(screen_player_color_picker);
+    lv_label_set_text(hint, "Turn knob, then apply");
+    lv_obj_set_style_text_color(hint, lv_color_hex(0x7A7A7A), 0);
+    lv_obj_set_style_text_font(hint, &lv_font_montserrat_14, 0);
+    lv_obj_align(hint, LV_ALIGN_CENTER, 0, 73);
+
+    lv_obj_t *btn = make_button(screen_player_color_picker, "Apply", 120, 46, event_color_apply);
     lv_obj_align(btn, LV_ALIGN_BOTTOM_MID, 0, -46);
 }

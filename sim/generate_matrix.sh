@@ -63,6 +63,11 @@ for life in -5 0 20 40 444; do
     shot "1p_life${ltag}.png" --screen 1p --track 1 \
         --starting-life 40 --life "$life"
 
+    # 1p — custom color override
+    shot "1p_custom_life${ltag}.png" --screen 1p --track 1 \
+        --starting-life 40 --life "$life" \
+        --player-override 1,0,0,0 --player-colors 4,0,0,0
+
     # multiplayer — player colors
     for track in 2 3 4; do
         life_csv=$(printf "%s" "$life"; for j in $(seq 2 $track); do printf ",%s" "$life"; done)
@@ -170,7 +175,31 @@ shot "game_mode_2p_20.png" --screen game-mode --players 2 --track 2 --starting-l
 shot "game_mode_3p_30.png" --screen game-mode --players 3 --track 3 --starting-life 30
 
 # ============================================================
-# 13. Settings pages with different toggle states
+# 13. Per-player color mode
+# ============================================================
+for track in 2 3 4; do
+    for orient in 0 1 2; do
+        orient_name=("absolute" "centric" "tabletop")
+        oname=${orient_name[$orient]}
+        case "$track" in
+            2) colors="5,9";       overrides="1,1" ;;
+            3) colors="5,9,0";     overrides="1,1,0" ;;
+            4) colors="0,5,7,9";   overrides="0,1,1,1" ;;
+        esac
+        shot "${track}p_${oname}_perplayer.png" \
+            --screen ${track}p --track "$track" --orientation "$orient" \
+            --player-colors "$colors" --player-override "$overrides"
+    done
+done
+
+# ============================================================
+# 14. Color menu and picker screens
+# ============================================================
+shot "color_menu.png" --screen color-menu --menu-player 0
+shot "color_picker.png" --screen color-picker --menu-player 0
+
+# ============================================================
+# 15. Settings pages with different toggle states
 # ============================================================
 for dim in 0 1 2 3; do
     dim_name=("off" "15s" "30s" "60s")
@@ -290,7 +319,7 @@ write_section() {
 
 # Sort files into sections
 SEC_1P_PREV=(); SEC_2P_PREV=(); SEC_3P_PREV=(); SEC_4P_PREV=()
-SEC_LIFE=(); SEC_LIFECOLOR=(); SEC_SELECTED=(); SEC_COUNTERS=()
+SEC_LIFE=(); SEC_LIFECOLOR=(); SEC_PERPLAYER=(); SEC_SELECTED=(); SEC_COUNTERS=()
 SEC_BRIGHT=(); SEC_COUNTER_EDIT=(); SEC_DAMAGE=(); SEC_SETTINGS=()
 SEC_TIMER=()
 SEC_OTHER=()
@@ -303,6 +332,7 @@ for f in "${FILES[@]}"; do
         4p_*_preview_*)       SEC_4P_PREV+=("$f") ;;
         1p_timer_*)           SEC_TIMER+=("$f") ;;
         *_lifecolor_*)        SEC_LIFECOLOR+=("$f") ;;
+        *_perplayer*)         SEC_PERPLAYER+=("$f") ;;
         *_life[0-9n]*)        SEC_LIFE+=("$f") ;;
         *_selected_*)         SEC_SELECTED+=("$f") ;;
         *_counters.png)       SEC_COUNTERS+=("$f") ;;
@@ -321,6 +351,7 @@ write_section "4-Player Life Preview" "${SEC_4P_PREV[@]}"
 write_section "1-Player Timer Overlay" "${SEC_TIMER[@]}"
 write_section "Life Totals (Player Colors)" "${SEC_LIFE[@]}"
 write_section "Life Totals (Life Colors)" "${SEC_LIFECOLOR[@]}"
+write_section "Life Totals (Per-Player Colors)" "${SEC_PERPLAYER[@]}"
 write_section "Selected Player" "${SEC_SELECTED[@]}"
 write_section "Player Counters" "${SEC_COUNTERS[@]}"
 write_section "Brightness" "${SEC_BRIGHT[@]}"

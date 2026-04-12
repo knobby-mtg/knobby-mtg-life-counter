@@ -105,6 +105,10 @@ static void handle_back_navigation(lv_obj_t *screen)
         open_counter_menu();
     } else if (screen == screen_player_all_damage) {
         open_player_menu(menu_player);
+    } else if (screen == screen_player_color_menu) {
+        open_player_menu(menu_player);
+    } else if (screen == screen_player_color_picker) {
+        load_screen_if_needed(screen_player_color_menu);
     }
 }
 
@@ -154,6 +158,8 @@ void knob_gui(void)
     build_all_damage_screen();
     build_counter_menu_screen();
     build_counter_edit_screen();
+    build_player_color_menu_screen();
+    build_player_color_picker_screen();
     build_select_screen();
     build_damage_screen();
     build_settings_screen();
@@ -237,6 +243,11 @@ static void handle_knob_event(knob_event_t k)
     {
         if (k == KNOB_LEFT)      mru_select_prev();
         else if (k == KNOB_RIGHT) mru_select_next();
+    }
+    else if (lv_scr_act() == screen_player_color_picker)
+    {
+        if (k == KNOB_LEFT)      change_player_color(-1);
+        else if (k == KNOB_RIGHT) change_player_color(+1);
     }
 }
 

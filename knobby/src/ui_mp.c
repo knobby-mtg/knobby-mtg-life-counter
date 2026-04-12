@@ -244,18 +244,11 @@ static lv_color_t refresh_mp_panel(lv_obj_t *panel, lv_obj_t *life_lbl, lv_obj_t
     lv_color_t bg_color;
     lv_color_t text_color;
 
-    if (nvs_get_color_mode() == COLOR_MODE_LIFE) {
-        int tier = get_life_tier(player_life[i], nvs_get_life_total());
+    {
         int vib;
         if (selected_player < 0) vib = LIFE_VIB_MID;
         else vib = selected ? LIFE_VIB_VIV : LIFE_VIB_DIM;
-        bg_color = get_life_color_vib(tier, vib);
-        text_color = color_is_light(bg_color) ? lv_color_black() : lv_color_white();
-    } else {
-        int vib;
-        if (selected_player < 0) vib = LIFE_VIB_MID;
-        else vib = selected ? LIFE_VIB_VIV : LIFE_VIB_DIM;
-        bg_color = get_player_color_vib(color_i, vib);
+        bg_color = get_effective_player_color(i, color_i, vib);
         text_color = color_is_light(bg_color) ? lv_color_black() : lv_color_white();
     }
 
@@ -278,14 +271,15 @@ static lv_color_t refresh_mp_panel(lv_obj_t *panel, lv_obj_t *life_lbl, lv_obj_t
             lv_label_set_text(life_lbl, buf);
             {
                 lv_color_t preview_c;
-                if (nvs_get_color_mode() == COLOR_MODE_LIFE) {
-                    preview_c = color_is_light(bg_color) ? lv_color_black() : lv_color_white();
-                } else {
+                if (nvs_get_color_mode() == COLOR_MODE_PLAYER && !player_has_override[i]) {
                     preview_c = get_player_preview_color(color_i, pending_life_delta);
                     if (color_is_light(bg_color) && color_is_light(preview_c))
                         preview_c = lv_color_black();
                     else if (!color_is_light(bg_color) && !color_is_light(preview_c))
                         preview_c = lv_color_white();
+                } else {
+                    /* Life mode, or player has override: pick purely on bg contrast */
+                    preview_c = color_is_light(bg_color) ? lv_color_black() : lv_color_white();
                 }
                 lv_obj_set_style_text_color(life_lbl, preview_c, 0);
             }
@@ -691,3 +685,4 @@ void build_multiplayer_3p_screen(void)
             &counter_value_3p[i][COUNTER_TYPE_EXPERIENCE], p);
     }
 }
+

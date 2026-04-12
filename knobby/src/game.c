@@ -158,6 +158,42 @@ static const uint32_t player_color_table[MAX_PLAYERS][LIFE_VIB_COUNT] = {
     {0x4D4400, 0xFFD600, 0xFFEA61},  /* P4 yellow (bottom-right) */
 };
 
+// ---------- custom color palette (18 colors) ----------
+static const uint32_t custom_color_table[CUSTOM_COLOR_COUNT][LIFE_VIB_COUNT] = {
+    /*  dim        mid        vivid  */
+    {0x024D3A, 0x06D6A0, 0x66FFD9},  /*  0 Green (logo) */
+    {0x2A0A4D, 0x7B1FE0, 0x9C4DFF},  /*  1 Purple */
+    {0x0A3A4D, 0x29B6F6, 0x4FC3F7},  /*  2 Blue   */
+    {0x4D4400, 0xFFD600, 0xFFEA61},  /*  3 Yellow */
+    {0x4D1C1C, 0xF44336, 0xFF5252},  /*  4 Red    */
+    {0x4D3300, 0xFF9800, 0xFFB74D},  /*  5 Orange */
+    {0x004D4D, 0x00BCD4, 0x4DD0E1},  /*  6 Cyan   */
+    {0x3D0A4D, 0xE040FB, 0xEA80FC},  /*  7 Pink   */
+    {0x2D4D00, 0x8BC34A, 0xAED581},  /*  8 Lime   */
+    {0x0A0A4D, 0x3F51B5, 0x7986CB},  /*  9 Indigo */
+    {0x4D0A2A, 0xE91E63, 0xF06292},  /* 10 Rose   */
+    {0x333333, 0xAAAAAA, 0xFFFFFF},  /* 11 White  */
+    {0x00332E, 0x009688, 0x4DB6AC},  /* 12 Teal   */
+    {0x4D3800, 0xFFC107, 0xFFD54F},  /* 13 Amber  */
+    {0x2E1F16, 0x795548, 0xA1887F},  /* 14 Brown  */
+    {0x1E2D33, 0x607D8B, 0x90A4AE},  /* 15 Gray   */
+    {0x1A3D1A, 0xA5D6A7, 0x4CAF50},  /* 16 Sage   */
+    {0x0A0A0A, 0x303030, 0x505050},  /* 17 Black  */
+};
+
+static const char *custom_color_names[CUSTOM_COLOR_COUNT] = {
+    "Green", "Purple", "Blue", "Yellow",
+    "Red", "Orange", "Cyan", "Pink",
+    "Lime", "Indigo", "Rose", "White",
+    "Teal", "Amber", "Brown", "Gray",
+    "Sage", "Black",
+};
+
+// ---------- per-player color state (runtime only, lost on reboot) ----------
+int player_color_index[MAX_PLAYERS] = {0, 1, 2, 3};
+bool player_life_color[MAX_PLAYERS] = {false, false, false, false};
+bool player_has_override[MAX_PLAYERS] = {false, false, false, false};
+
 lv_color_t get_player_color_vib(int index, int vibrancy)
 {
     if (index < 0 || index >= MAX_PLAYERS) return lv_color_hex(0x303030);
@@ -191,6 +227,44 @@ lv_color_t get_player_preview_color(int index, int delta)
         return (delta < 0) ? lv_palette_main(LV_PALETTE_RED) : lv_color_white();
     }
     return (delta < 0) ? lv_palette_main(LV_PALETTE_RED) : lv_palette_main(LV_PALETTE_GREEN);
+}
+
+lv_color_t get_custom_color_vib(int index, int vibrancy)
+{
+    if (index < 0 || index >= CUSTOM_COLOR_COUNT) index = 0;
+    if (vibrancy < 0 || vibrancy >= LIFE_VIB_COUNT) vibrancy = LIFE_VIB_MID;
+    return lv_color_hex(custom_color_table[index][vibrancy]);
+}
+
+const char *get_custom_color_name(int index)
+{
+    if (index < 0 || index >= CUSTOM_COLOR_COUNT) index = 0;
+    return custom_color_names[index];
+}
+
+lv_color_t get_effective_player_color(int player_i, int color_i, int vibrancy)
+{
+    /* Per-player override takes precedence over global mode */
+    if (player_has_override[player_i]) {
+        if (player_life_color[player_i]) {
+            int life = player_life[player_i];
+            int max_life = nvs_get_life_total();
+            int tier = get_life_tier(life, max_life);
+            return get_life_color_vib(tier, vibrancy);
+        }
+        return get_custom_color_vib(player_color_index[player_i], vibrancy);
+    }
+
+    /* No override: use global mode */
+    if (nvs_get_color_mode() == COLOR_MODE_LIFE) {
+        int life = player_life[player_i];
+        int max_life = nvs_get_life_total();
+        int tier = get_life_tier(life, max_life);
+        return get_life_color_vib(tier, vibrancy);
+    }
+
+    /* COLOR_MODE_PLAYER: use position color */
+    return get_player_color_vib(color_i, vibrancy);
 }
 
 int get_main_player_index(void)

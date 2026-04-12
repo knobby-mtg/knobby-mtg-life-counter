@@ -142,6 +142,11 @@ static void nav_counter_edit(void) {
     refresh_counter_edit_ui();
     lv_scr_load(screen_counter_edit);
 }
+static void nav_color_menu(void)   { load_screen_if_needed(screen_player_color_menu); }
+static void nav_color_picker(void) {
+    player_color_index[menu_player] = 5;  /* show Orange as example */
+    load_screen_if_needed(screen_player_color_picker);
+}
 
 static const screen_entry_t all_screens[] = {
     {"main",          nav_main},
@@ -167,6 +172,8 @@ static const screen_entry_t all_screens[] = {
     {"all-damage",    nav_all_damage},
     {"counters-menu", nav_counters_menu},
     {"counter-edit",  nav_counter_edit},
+    {"color-menu",    nav_color_menu},
+    {"color-picker",  nav_color_picker},
     {NULL, NULL}
 };
 
@@ -190,7 +197,9 @@ static void print_usage(void)
            "  --preview-delta <n>    Pending life change to display (e.g. +12, -5)\n"
            "  --preview-player <n>   Which player shows the preview, -1=1p mode (default: -1)\n"
            "\nDisplay settings:\n"
-           "  --color-mode <n>       0=player colors, 1=life colors (default: 0)\n"
+           "  --color-mode <n>       0=player, 1=life (default: 0)\n"
+           "  --player-colors <csv>  Per-player custom color indices, e.g. 0,5,2,13\n"
+           "  --player-override <csv> Per-player override flags, e.g. 0,1,0,0\n"
            "  --orientation <n>      0=absolute, 1=centric, 2=tabletop (default: 0)\n"
            "  --brightness <n>       Brightness percent 1-100 (default: 30)\n"
            "  --auto-dim <n>         0=OFF, 1=15s, 2=30s, 3=60s (default: 0)\n"
@@ -300,6 +309,10 @@ int main(int argc, char *argv[])
     int all_damage_set = 0;
     int menu_player_val = 0;
     int menu_player_set = 0;
+    int player_color_values[MAX_PLAYERS] = {0, 1, 2, 3};
+    int player_colors_set = 0;
+    int player_override_values[MAX_PLAYERS] = {0, 0, 0, 0};
+    int player_override_set = 0;
     int brightness_val = 0;
     int brightness_set = 0;
     int do_random_counters = 0;
@@ -368,6 +381,12 @@ int main(int argc, char *argv[])
         } else if (strcmp(argv[i], "--menu-player") == 0 && i + 1 < argc) {
             menu_player_val = atoi(argv[++i]);
             menu_player_set = 1;
+        } else if (strcmp(argv[i], "--player-colors") == 0 && i + 1 < argc) {
+            parse_csv_ints(argv[++i], player_color_values, MAX_PLAYERS);
+            player_colors_set = 1;
+        } else if (strcmp(argv[i], "--player-override") == 0 && i + 1 < argc) {
+            parse_csv_ints(argv[++i], player_override_values, MAX_PLAYERS);
+            player_override_set = 1;
         } else if (strcmp(argv[i], "--battery-voltage") == 0 && i + 1 < argc) {
             sim_battery_voltage = (float)atof(argv[++i]);
         } else if (strcmp(argv[i], "--random-counters") == 0) {
@@ -453,6 +472,14 @@ int main(int argc, char *argv[])
         } \
         if (menu_player_set) { \
             menu_player = menu_player_val; \
+        } \
+        if (player_colors_set) { \
+            for (i = 0; i < MAX_PLAYERS; i++) \
+                player_color_index[i] = player_color_values[i]; \
+        } \
+        if (player_override_set) { \
+            for (i = 0; i < MAX_PLAYERS; i++) \
+                player_has_override[i] = (bool)player_override_values[i]; \
         } \
         if (do_random_counters) \
             populate_random_counters(); \

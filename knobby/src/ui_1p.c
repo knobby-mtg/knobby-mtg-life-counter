@@ -42,7 +42,7 @@ static lv_obj_t *label_damage_hint = NULL;
 static void refresh_ring(void)
 {
     int max_life = nvs_get_life_total();
-    lv_color_t c = get_life_color(player_life[0], max_life);
+    lv_color_t c = get_effective_player_color(0, 0, LIFE_VIB_MID);
 
     lv_arc_set_range(arc_life, 0, max_life);
     lv_arc_set_value(arc_life, get_arc_display_value(player_life[0], max_life));
@@ -111,7 +111,7 @@ static void refresh_life_digits(void)
         else
             snprintf(buf, sizeof(buf), "%d", display_value);
     } else {
-        c = get_life_color(display_value, nvs_get_life_total());
+        c = get_effective_player_color(0, 0, LIFE_VIB_MID);
         snprintf(buf, sizeof(buf), "%d", display_value);
     }
 

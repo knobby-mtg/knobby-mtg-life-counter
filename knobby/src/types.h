@@ -20,9 +20,11 @@
 #define KNOB_EVENT_QUEUE_SIZE 32
 
 // ---------- color modes ----------
-#define COLOR_MODE_PLAYER 0
-#define COLOR_MODE_LIFE   1
-#define COLOR_MODE_COUNT  2
+#define COLOR_MODE_PLAYER     0
+#define COLOR_MODE_LIFE       1
+#define COLOR_MODE_COUNT      2
+
+#define CUSTOM_COLOR_COUNT 18
 
 // ---------- orientation modes ----------
 #define ORIENTATION_MODE_ABSOLUTE 0
