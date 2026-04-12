@@ -98,6 +98,10 @@ static void handle_back_navigation(lv_obj_t *screen)
     } else if (screen == screen_player_name) {
         if (!name_screen_handle_back())
             open_multiplayer_menu_screen(multiplayer_menu_player);
+    } else if (screen == screen_player_counters_menu) {
+        open_multiplayer_menu_screen(multiplayer_menu_player);
+    } else if (screen == screen_player_counter_edit) {
+        open_multiplayer_counter_menu_screen();
     } else if (screen == screen_player_all_damage) {
         open_multiplayer_menu_screen(multiplayer_menu_player);
     }
@@ -121,6 +125,7 @@ void reset_all_values(void)
 
     refresh_rename_ui();
     refresh_multiplayer_all_damage_ui();
+    refresh_multiplayer_counter_edit_ui();
 }
 
 void knob_cb(lv_event_t *e)
@@ -145,6 +150,8 @@ void knob_gui(void)
     build_multiplayer_menu_screen();
     build_rename_screen();
     build_multiplayer_all_damage_screen();
+    build_multiplayer_counter_menu_screen();
+    build_multiplayer_counter_edit_screen();
     build_select_screen();
     build_damage_screen();
     build_settings_screen();
@@ -161,6 +168,7 @@ void knob_gui(void)
     refresh_select_ui();
     refresh_damage_ui();
     refresh_multiplayer_all_damage_ui();
+    refresh_multiplayer_counter_edit_ui();
     refresh_settings_ui();
 
     knob_timer_init();
@@ -210,6 +218,12 @@ static void handle_knob_event(knob_event_t k)
     {
         if (k == KNOB_LEFT)      change_custom_life(-1);
         else if (k == KNOB_RIGHT) change_custom_life(+1);
+    }
+    else if (lv_scr_act() == screen_player_counter_edit)
+    {
+        if (k == KNOB_LEFT)      change_multiplayer_counter_edit(-1);
+        else if (k == KNOB_RIGHT) change_multiplayer_counter_edit(+1);
+        refresh_multiplayer_counter_edit_ui();
     }
     else if (lv_scr_act() == screen_damage_log)
     {

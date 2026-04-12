@@ -5,7 +5,7 @@
 typedef struct {
     uint32_t timestamp_ms;
     int8_t   player;       // target: -1 = single player, 0-3 = multiplayer index
-    int8_t   source;       // source for cmd damage, -1 if N/A
+    int8_t   source;       // source for cmd damage or counter type, -1 if N/A
     uint8_t  event_type;   // log_event_type_t
     int16_t  delta;
 } damage_log_entry_t;
@@ -70,12 +70,13 @@ void damage_log_undo_selected(void)
     buf_idx = (damage_log_head - 1 - damage_log_selected + DAMAGE_LOG_MAX) % DAMAGE_LOG_MAX;
     entry = &damage_log[buf_idx];
 
-    /* Reverse the life change */
-    undo_life_change(entry->player, entry->delta);
-
-    /* Reverse commander damage tracking */
-    if (entry->event_type == LOG_EVT_CMD_DAMAGE && entry->source >= 0) {
+    if (entry->event_type == LOG_EVT_LIFE) {
+        undo_life_change(entry->player, entry->delta);
+    } else if (entry->event_type == LOG_EVT_CMD_DAMAGE) {
+        undo_life_change(entry->player, entry->delta);
         undo_cmd_damage(entry->source, entry->player, entry->delta);
+    } else if (entry->event_type == LOG_EVT_COUNTER) {
+        undo_counter_change(entry->player, entry->source, entry->delta);
     }
 
     /* Remove entry by shifting newer entries down */
@@ -121,6 +122,16 @@ static void format_log_line(damage_log_entry_t *entry, char *buf, size_t buf_sz)
                  multiplayer_names[entry->source],
                  abs_delta,
                  multiplayer_names[entry->player]);
+    } else if (entry->event_type == LOG_EVT_COUNTER && entry->source >= 0 && entry->player >= 0) {
+        const counter_definition_t *definition = get_counter_definition((counter_type_t)entry->source);
+        const char *action = entry->delta > 0 ? "increased" : "decreased";
+        const char *counter_name = (definition != NULL) ? definition->display_name : "Counter";
+        snprintf(buf, buf_sz, "%s: %s %s %s by %d",
+                 time_str,
+                 multiplayer_names[entry->player],
+                 action,
+                 counter_name,
+                 abs_delta);
     } else if (entry->player < 0) {
         const char *action = entry->delta > 0 ? "gained" : "lost";
         snprintf(buf, buf_sz, "%s: %s %d life", time_str, action, abs_delta);
@@ -203,8 +214,14 @@ static void refresh_damage_log_ui(void)
         lv_obj_set_style_pad_top(lbl, 2, 0);
         lv_obj_set_style_pad_bottom(lbl, 2, 0);
         lv_obj_set_style_radius(lbl, 4, 0);
-        lv_obj_set_style_text_color(lbl,
-            damage_log[idx].delta > 0 ? lv_color_hex(0x4CAF50) : lv_color_hex(0xFF5252), 0);
+        if (damage_log[idx].event_type == LOG_EVT_COUNTER) {
+            const counter_definition_t *definition = get_counter_definition((counter_type_t)damage_log[idx].source);
+            lv_obj_set_style_text_color(lbl,
+                definition != NULL ? lv_color_hex(definition->accent_color) : lv_color_hex(0xFFB74D), 0);
+        } else {
+            lv_obj_set_style_text_color(lbl,
+                damage_log[idx].delta > 0 ? lv_color_hex(0x4CAF50) : lv_color_hex(0xFF5252), 0);
+        }
         lv_obj_set_style_text_font(lbl, &lv_font_montserrat_14, 0);
     }
 

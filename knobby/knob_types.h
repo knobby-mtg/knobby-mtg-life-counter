@@ -11,6 +11,8 @@
 #define MAX_PLAYERS 4
 #define LIFE_MIN -999
 #define LIFE_MAX 999
+#define COUNTER_MIN 0
+#define COUNTER_MAX 9999
 #define DEFAULT_LIFE_TOTAL 40
 #define DEFAULT_BRIGHTNESS_PERCENT 30
 #define INTRO_CHAR_COUNT 7
@@ -90,6 +92,13 @@ static inline int clamp_brightness(int value)
 {
     if (value < 1) return 1;
     if (value > 100) return 100;
+    return value;
+}
+
+static inline int clamp_counter(int value)
+{
+    if (value < COUNTER_MIN) return COUNTER_MIN;
+    if (value > COUNTER_MAX) return COUNTER_MAX;
     return value;
 }
 

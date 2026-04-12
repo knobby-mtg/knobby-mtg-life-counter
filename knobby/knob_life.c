@@ -35,8 +35,18 @@ static int damage_start_value = 0;
 int multiplayer_pending_life_delta = 0;
 int multiplayer_preview_player = -1;
 bool multiplayer_life_preview_active = false;
+int multiplayer_counter_values[MAX_PLAYERS][COUNTER_TYPE_COUNT] = {{0}};
+counter_type_t multiplayer_counter_edit_type = COUNTER_TYPE_COMMANDER_TAX;
+int multiplayer_counter_edit_value = 0;
 static lv_timer_t *life_preview_timer = NULL;
 static lv_timer_t *multiplayer_life_preview_timer = NULL;
+
+static const counter_definition_t counter_definitions[COUNTER_TYPE_COUNT] = {
+    {"Commander\nTax", "Commander Tax", "C", 0xA84300, true},
+    {"Partner\nTax", "Partner Tax", "P", 0x1565C0, true},
+    {"Poison", "Poison", "!", 0x2E7D32, true},
+    {"Experience", "Experience", "E", 0x6A1B9A, true},
+};
 
 // ---------- player colors ----------
 static const uint32_t player_color_table[MAX_PLAYERS][LIFE_VIB_COUNT] = {
@@ -122,6 +132,63 @@ int get_cmd_target_player_index(int row)
     }
 
     return row;
+}
+
+const counter_definition_t *get_counter_definition(counter_type_t type)
+{
+    if (type < 0 || type >= COUNTER_TYPE_COUNT) return NULL;
+    return &counter_definitions[type];
+}
+
+bool counter_type_is_enabled(counter_type_t type)
+{
+    const counter_definition_t *definition = get_counter_definition(type);
+
+    return (definition != NULL) && definition->enabled;
+}
+
+int get_multiplayer_counter_value(int player, counter_type_t type)
+{
+    if (player < 0 || player >= MAX_PLAYERS) return 0;
+    if (type < 0 || type >= COUNTER_TYPE_COUNT) return 0;
+
+    return multiplayer_counter_values[player][type];
+}
+
+void begin_multiplayer_counter_edit(int player, counter_type_t type)
+{
+    if (player < 0 || player >= MAX_PLAYERS) return;
+    if (type < 0 || type >= COUNTER_TYPE_COUNT) return;
+
+    multiplayer_menu_player = player;
+    multiplayer_counter_edit_type = type;
+    multiplayer_counter_edit_value = multiplayer_counter_values[player][type];
+}
+
+void change_multiplayer_counter_edit(int delta)
+{
+    multiplayer_counter_edit_value = clamp_counter(multiplayer_counter_edit_value + delta);
+}
+
+int apply_multiplayer_counter_edit(void)
+{
+    int player = multiplayer_menu_player;
+    int old_value;
+    int change_delta;
+
+    if (player < 0 || player >= MAX_PLAYERS) return 0;
+    if (multiplayer_counter_edit_type < 0 || multiplayer_counter_edit_type >= COUNTER_TYPE_COUNT) return 0;
+
+    old_value = multiplayer_counter_values[player][multiplayer_counter_edit_type];
+    multiplayer_counter_edit_value = clamp_counter(multiplayer_counter_edit_value);
+    change_delta = multiplayer_counter_edit_value - old_value;
+    multiplayer_counter_values[player][multiplayer_counter_edit_type] = multiplayer_counter_edit_value;
+
+    if (change_delta != 0) {
+        damage_log_add(player, change_delta, LOG_EVT_COUNTER, multiplayer_counter_edit_type);
+    }
+
+    return change_delta;
 }
 
 // ---------- life preview ----------
@@ -315,6 +382,17 @@ void undo_cmd_damage(int source, int target, int delta)
         multiplayer_cmd_damage_totals[source][target] = 0;
 }
 
+void undo_counter_change(int player, int counter_type, int delta)
+{
+    if (player < 0 || player >= MAX_PLAYERS) return;
+    if (counter_type < 0 || counter_type >= COUNTER_TYPE_COUNT) return;
+
+    multiplayer_counter_values[player][counter_type] = clamp_counter(
+        multiplayer_counter_values[player][counter_type] - delta
+    );
+    refresh_multiplayer_ui();
+}
+
 // ---------- reset ----------
 void knob_life_reset(void)
 {
@@ -347,7 +425,10 @@ void knob_life_reset(void)
     multiplayer_menu_player = 0;
     cmd_damage_target = -1;
     memset(multiplayer_cmd_damage_totals, 0, sizeof(multiplayer_cmd_damage_totals));
+    memset(multiplayer_counter_values, 0, sizeof(multiplayer_counter_values));
     multiplayer_all_damage_value = 0;
+    multiplayer_counter_edit_type = COUNTER_TYPE_COMMANDER_TAX;
+    multiplayer_counter_edit_value = 0;
 
     if (life_preview_timer != NULL) {
         lv_timer_pause(life_preview_timer);
@@ -372,6 +453,9 @@ void knob_life_init(void)
     for (i = 0; i < MAX_PLAYERS; i++) {
         multiplayer_life[i] = starting_life;
     }
+    memset(multiplayer_counter_values, 0, sizeof(multiplayer_counter_values));
+    multiplayer_counter_edit_type = COUNTER_TYPE_COMMANDER_TAX;
+    multiplayer_counter_edit_value = 0;
 
     life_preview_timer = lv_timer_create(life_preview_commit_cb, 3000, NULL);
     if (life_preview_timer != NULL) {
