@@ -423,9 +423,14 @@ static void event_select_enemy(lv_event_t *e)
 static void event_damage_apply(lv_event_t *e)
 {
     (void)e;
+    bool was_cmd = (cmd_damage_target >= 0);
     damage_apply();
-    refresh_select_ui();
-    load_screen_if_needed(screen_select);
+    if (was_cmd) {
+        back_to_main();
+    } else {
+        refresh_select_ui();
+        load_screen_if_needed(screen_select);
+    }
 }
 
 static void event_back_main(lv_event_t *e)
@@ -575,6 +580,6 @@ void build_damage_screen(void)
     lv_obj_set_style_text_font(label_damage_hint, &lv_font_montserrat_14, 0);
     lv_obj_align(label_damage_hint, LV_ALIGN_CENTER, 0, 24);
 
-    lv_obj_t *btn = make_button(screen_damage, "apply", 120, 46, event_damage_apply);
+    lv_obj_t *btn = make_button(screen_damage, "Apply", 120, 46, event_damage_apply);
     lv_obj_align(btn, LV_ALIGN_BOTTOM_MID, 0, -46);
 }
