@@ -3,7 +3,8 @@
 #include "driver/ledc.h"
 
 // ---------- private constants ----------
-#define BACKLIGHT_PIN 47
+#include "pincfg.h"
+#define BACKLIGHT_PIN TFT_BLK
 #define BACKLIGHT_LEDC_MODE LEDC_LOW_SPEED_MODE
 #define BACKLIGHT_LEDC_TIMER LEDC_TIMER_0
 #define BACKLIGHT_LEDC_CHANNEL LEDC_CHANNEL_0

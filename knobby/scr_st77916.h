@@ -31,16 +31,12 @@ int encoder_cont = 0;
 static volatile bool touch_irq_pending = false;
 #define USE_CUSTOM_INIT_CMD 0 // 是否用自定义的初始化代码
 
-#if TOUCH_PIN_NUM_INT >= 0
-
 IRAM_ATTR bool onTouchInterruptCallback(void *user_data)
 {
   (void)user_data;
   touch_irq_pending = true;
   return false;
 }
-
-#endif
 
 const esp_lcd_panel_vendor_init_cmd_t lcd_init_cmd[] = {
      {0xF0, (uint8_t[]){0x28}, 1, 0},
@@ -228,6 +224,7 @@ const esp_lcd_panel_vendor_init_cmd_t lcd_init_cmd[] = {
     {0x11, (uint8_t[]){0x00}, 1, 120},
     {0x29, (uint8_t[]){0x00}, 1, 0}
 };
+
 
 #define TFT_SPI_FREQ_HZ (50 * 1000 * 1000)
 
@@ -517,9 +514,9 @@ void scr_lvgl_init()
   touch->init();
   touch->begin();
 
-#if TOUCH_PIN_NUM_INT >= 0
-  touch->attachInterruptCallback(onTouchInterruptCallback, NULL);
-#endif
+  if (TOUCH_PIN_NUM_INT >= 0) {
+    touch->attachInterruptCallback(onTouchInterruptCallback, NULL);
+  }
 
   ESP_PanelBusQSPI *panel_bus = new ESP_PanelBusQSPI(TFT_CS, TFT_SCK, TFT_SDA0, TFT_SDA1, TFT_SDA2, TFT_SDA3);
   panel_bus->configQspiFreqHz(TFT_SPI_FREQ_HZ);
@@ -533,7 +530,14 @@ void scr_lvgl_init()
   lcd->begin();
 
   lcd->invertColor(true);
-  // setRotation(0);  //设置屏幕方向
+  if (board->mirror_x) {
+    lcd->mirrorX(true);
+    touch->mirrorX(true);
+  }
+  if (board->mirror_y) {
+    lcd->mirrorY(true);
+    touch->mirrorY(true);
+  }
   lcd->displayOn();
 
   screen_switch(true);

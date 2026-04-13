@@ -4,13 +4,13 @@
 #include "driver/gpio.h"
 #include "soc/usb_serial_jtag_struct.h"
 
+#include "board_detect.h"
 #include "scr_st77916.h"
 #include <lvgl.h>
 #include "hal/lv_hal.h"
 #include "knob.h"
 #include "knob_hw.h"
 
-static const int BATTERY_ADC_PIN = 1;
 static const float BATTERY_DIVIDER_RATIO = 2.0f;
 static const float BATTERY_CALIBRATION_SCALE = 1.0f;
 static const float BATTERY_CALIBRATION_OFFSET = 0.0f;
@@ -26,9 +26,9 @@ extern "C" float knob_read_battery_voltage(void)
   const int sample_count = 16;
   float measured_voltage = 0.0f;
 
-  analogSetPinAttenuation(BATTERY_ADC_PIN, ADC_11db);
+  analogSetPinAttenuation(BATTERY_ADC_PIN_NUM, ADC_11db);
   for (int i = 0; i < sample_count; i++) {
-    uint32_t sample = analogReadMilliVolts(BATTERY_ADC_PIN);
+    uint32_t sample = analogReadMilliVolts(BATTERY_ADC_PIN_NUM);
     sum += sample;
     if (sample < min_sample) min_sample = sample;
     if (sample > max_sample) max_sample = sample;
@@ -57,6 +57,9 @@ extern "C" float knob_read_battery_voltage(void)
 
 void setup()
 {
+  // Detect which board we're running on before any pin-dependent init
+  board_detect();
+
   // Use the configured active CPU frequency for easier tuning.
   setCpuFrequencyMhz(CPU_FREQ_ACTIVE);
 
