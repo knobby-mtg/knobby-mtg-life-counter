@@ -33,6 +33,9 @@ static lv_obj_t *digit_box_hundreds = NULL;
 static lv_obj_t *digit_box_tens = NULL;
 static lv_obj_t *digit_box_ones = NULL;
 
+// preview total label
+static lv_obj_t *label_life_preview_total = NULL;
+
 // ---------- select UI ----------
 static lv_obj_t *label_select_title = NULL;
 static lv_obj_t *select_rows[MAX_ENEMY_COUNT];
@@ -306,6 +309,17 @@ static void refresh_life_digits(void)
         lv_obj_clear_flag(digit_box_ones, LV_OBJ_FLAG_HIDDEN);
         set_digit_segments(digit_ones, ones, c, true);
     }
+
+    // Update preview total label when in preview mode
+    if (life_preview_active && label_life_preview_total != NULL) {
+        char buf[16];
+        int new_total = life_total + pending_life_delta;
+        snprintf(buf, sizeof(buf), "= %d", new_total);
+        lv_label_set_text(label_life_preview_total, buf);
+        lv_obj_clear_flag(label_life_preview_total, LV_OBJ_FLAG_HIDDEN);
+    } else if (label_life_preview_total != NULL) {
+        lv_obj_add_flag(label_life_preview_total, LV_OBJ_FLAG_HIDDEN);
+    }
 }
 
 void refresh_main_ui(void)
@@ -480,6 +494,13 @@ void build_main_screen(void)
 
     digit_box_ones = make_plain_box(life_container, 60, 112);
     create_digit(digit_box_ones, digit_ones);
+
+    label_life_preview_total = lv_label_create(screen_1p);
+    lv_label_set_text(label_life_preview_total, "");
+    lv_obj_set_style_text_color(label_life_preview_total, lv_palette_main(LV_PALETTE_GREEN), 0);
+    lv_obj_set_style_text_font(label_life_preview_total, &lv_font_montserrat_16, 0);
+    lv_obj_align(label_life_preview_total, LV_ALIGN_CENTER, 0, 80);
+    lv_obj_add_flag(label_life_preview_total, LV_OBJ_FLAG_HIDDEN);
 
     turn_container = make_plain_box(screen_1p, 96, 96);
     lv_obj_align(turn_container, LV_ALIGN_CENTER, 110, -6);

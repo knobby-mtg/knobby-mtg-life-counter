@@ -266,8 +266,10 @@ static lv_color_t refresh_mp_panel(lv_obj_t *panel, lv_obj_t *life_lbl, lv_obj_t
 
     if (life_lbl != NULL) {
         if (preview_here) {
-            snprintf(buf, sizeof(buf), "%+d", multiplayer_pending_life_delta);
-            lv_label_set_text(life_lbl, buf);
+            char buf_extended[16];
+            int new_total = multiplayer_life[i] + multiplayer_pending_life_delta;
+            snprintf(buf_extended, sizeof(buf_extended), "%+d\n= %d", multiplayer_pending_life_delta, new_total);
+            lv_label_set_text(life_lbl, buf_extended);
             {
                 lv_color_t preview_c;
                 if (nvs_get_color_mode() == COLOR_MODE_LIFE) {
