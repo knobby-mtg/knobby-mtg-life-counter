@@ -39,8 +39,9 @@ Specifications:
 - CPU: 240 MHz
 - Platform: ESP32
 
-The one from waveshare might be identical: 
-https://www.waveshare.com/wiki/ESP32-S3-Knob-Touch-LCD-1.8
+These boards may also be supported depending on hardware revision:
+* https://www.waveshare.com/wiki/ESP32-S3-Knob-Touch-LCD-1.8
+* The JC3636K718 board varient is also unofficially supported (currently experimental).
 
 ## 🔧 Building
 
