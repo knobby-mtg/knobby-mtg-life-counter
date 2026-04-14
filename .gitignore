@@ -62,3 +62,9 @@ build/libraries/
 
 # Misc
 *.tmp
+
+# Simulator
+sim/build/
+sim/knobby_sim
+sim/screenshots/*.png
+sim/screenshots/index.html

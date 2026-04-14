@@ -42,6 +42,36 @@ Specifications:
 The one from waveshare might be identical: 
 https://www.waveshare.com/wiki/ESP32-S3-Knob-Touch-LCD-1.8
 
+## 🔧 Building
+
+All build commands run from the repo root:
+
+```bash
+# First time: install Arduino cores and libraries
+make firmware-deps
+
+# Compile firmware for ESP32-S3
+make firmware
+
+# Flash to device (replace port with yours from `arduino-cli board list`)
+make firmware-flash PORT=/dev/ttyACM0
+```
+
+## 📸 Screenshots
+
+A headless simulator renders the UI without hardware, producing PNG screenshots with a circular display mask matching the physical device.
+
+```bash
+# Single screenshot
+make screenshot                                    # default main screen
+make screenshot ARGS="--screen 4p --life 200,30,40,15 --names Alice,Bob,Charlie,Dave"
+
+# Full test matrix (308 screenshots + index.html gallery)
+make generate-matrix
+```
+
+Run `sim/knobby_sim --help` for all CLI options. See [sim/screenshots/README.md](sim/screenshots/README.md) for details.
+
 ## 🧑‍🤝‍🧑 Contributing
 
 See [CONTRIBUTING.md](CONTRIBUTING.md)
