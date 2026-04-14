@@ -65,6 +65,10 @@ generate_font "lv_font_montserrat_bold_116" "$BOLD" 116 "$RANGE_DIGITS"
 # Regular font for life preview total ("= xxx")
 generate_font "lv_font_montserrat_regular_48" "$REGULAR" 48 "$RANGE_DIGITS"
 
+# Bold fonts for multiplayer life totals (56 for absolute/tabletop, 44 for centric)
+generate_font "lv_font_montserrat_bold_56" "$BOLD" 56 "$RANGE_DIGITS"
+generate_font "lv_font_montserrat_bold_44" "$BOLD" 44 "$RANGE_DIGITS"
+
 echo ""
 echo "Done! Generated fonts:"
 ls -lh *.c 2>/dev/null || echo "(no .c files found)"

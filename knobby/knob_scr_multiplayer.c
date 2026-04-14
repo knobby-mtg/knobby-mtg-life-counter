@@ -266,18 +266,14 @@ static lv_color_t refresh_mp_panel(lv_obj_t *panel, lv_obj_t *life_lbl, lv_obj_t
 
     if (life_lbl != NULL) {
         if (preview_here) {
-            char buf_extended[16];
-            int new_total = multiplayer_life[i] + multiplayer_pending_life_delta;
-            snprintf(buf_extended, sizeof(buf_extended), "%+d\n= %d", multiplayer_pending_life_delta, new_total);
-            lv_label_set_text(life_lbl, buf_extended);
+            snprintf(buf, sizeof(buf), "%+d", multiplayer_pending_life_delta);
+            lv_label_set_text(life_lbl, buf);
             {
                 lv_color_t preview_c;
                 if (nvs_get_color_mode() == COLOR_MODE_LIFE) {
-                    /* Life-color mode: pick purely on bg contrast */
                     preview_c = color_is_light(bg_color) ? lv_color_black() : lv_color_white();
                 } else {
                     preview_c = get_player_preview_color(color_i, multiplayer_pending_life_delta);
-                    /* If preview color would blend into bg, flip */
                     if (color_is_light(bg_color) && color_is_light(preview_c))
                         preview_c = lv_color_black();
                     else if (!color_is_light(bg_color) && !color_is_light(preview_c))
@@ -293,7 +289,14 @@ static lv_color_t refresh_mp_panel(lv_obj_t *panel, lv_obj_t *life_lbl, lv_obj_t
     }
 
     if (name_lbl != NULL) {
-        lv_label_set_text(name_lbl, multiplayer_names[i]);
+        if (preview_here) {
+            char total_buf[16];
+            int new_total = multiplayer_life[i] + multiplayer_pending_life_delta;
+            snprintf(total_buf, sizeof(total_buf), "= %d", new_total);
+            lv_label_set_text(name_lbl, total_buf);
+        } else {
+            lv_label_set_text(name_lbl, multiplayer_names[i]);
+        }
         lv_obj_set_style_text_color(name_lbl, text_color, 0);
     }
 
@@ -308,20 +311,38 @@ static void refresh_multiplayer_4p_ui(void)
     int16_t counter_angle;
     lv_color_t text_color;
 
+    /* X nudge toward screen center per quadrant (left panels +, right panels -) */
+    static const lv_coord_t center_nudge_x[MULTIPLAYER_COUNT] = {10, 10, -10, -10};
+
     for (i = 0; i < MULTIPLAYER_COUNT; i++) {
+        lv_coord_t nx = (orientation_mode != ORIENTATION_MODE_CENTRIC) ? center_nudge_x[i] : 0;
         angle = get_4p_orientation_angle(orientation_mode, i);
         counter_angle = get_counter_row_angle(orientation_mode, multiplayer_quadrants[i], angle);
         text_color = refresh_mp_panel(multiplayer_quadrants[i], label_multiplayer_life[i], label_multiplayer_name[i], i, i);
         if (label_multiplayer_life[i] != NULL) {
             lv_obj_clear_flag(label_multiplayer_life[i], LV_OBJ_FLAG_HIDDEN);
-            lv_obj_align(label_multiplayer_life[i], LV_ALIGN_CENTER, 0, angle != 0 ? -30 : -12);
+            if (orientation_mode == ORIENTATION_MODE_CENTRIC) {
+                lv_obj_set_style_text_font(label_multiplayer_life[i], &lv_font_montserrat_bold_44, 0);
+            } else {
+                lv_obj_set_style_text_font(label_multiplayer_life[i], &lv_font_montserrat_bold_56, 0);
+            }
+            if (orientation_mode == ORIENTATION_MODE_CENTRIC) {
+                lv_obj_align(label_multiplayer_life[i], LV_ALIGN_CENTER, nx, -10);
+            } else {
+                lv_obj_align(label_multiplayer_life[i], LV_ALIGN_CENTER, nx, -12);
+            }
         }
         if (label_multiplayer_name[i] != NULL) {
             lv_obj_clear_flag(label_multiplayer_name[i], LV_OBJ_FLAG_HIDDEN);
-            lv_obj_align(label_multiplayer_name[i], LV_ALIGN_CENTER, 0, 30);
+            lv_obj_align(label_multiplayer_name[i], LV_ALIGN_CENTER, nx, 30);
         }
-        apply_label_rotation(label_multiplayer_life[i], label_multiplayer_name[i],
-            angle, 30, -30);
+        if (orientation_mode == ORIENTATION_MODE_CENTRIC) {
+            apply_label_rotation(label_multiplayer_life[i], label_multiplayer_name[i],
+                angle, 10, -30);
+        } else {
+            apply_label_rotation(label_multiplayer_life[i], label_multiplayer_name[i],
+                angle, 12, -30);
+        }
         refresh_counter_rows(multiplayer_quadrants[i], counter_row_4p[i], counter_value_4p[i], i, text_color, angle, counter_angle);
     }
 }
@@ -356,17 +377,33 @@ static void refresh_multiplayer_3p_ui(void)
     int16_t counter_angle;
     lv_color_t text_color;
 
+    /* X nudge: top-left panels right, top-right panels left, bottom panel centered */
+    static const lv_coord_t nudge_3p_x[3] = {10, -10, 0};
+
     for (i = 0; i < 3; i++) {
+        lv_coord_t nx = (orientation_mode != ORIENTATION_MODE_CENTRIC) ? nudge_3p_x[i] : 0;
         angle = get_3p_orientation_angle(orientation_mode, i);
         counter_angle = get_counter_row_angle(orientation_mode, mp3_panels[i], angle);
         text_color = refresh_mp_panel(mp3_panels[i], label_mp3_life[i], label_mp3_name[i],
                          panel_player[i], panel_player[i]);
-        if (label_mp3_life[i] != NULL)
-            lv_obj_align(label_mp3_life[i], LV_ALIGN_CENTER, 0, angle != 0 ? -30 : -12);
+        if (label_mp3_life[i] != NULL) {
+            if (orientation_mode == ORIENTATION_MODE_CENTRIC) {
+                lv_obj_set_style_text_font(label_mp3_life[i], &lv_font_montserrat_bold_44, 0);
+                lv_obj_align(label_mp3_life[i], LV_ALIGN_CENTER, nx, -10);
+            } else {
+                lv_obj_set_style_text_font(label_mp3_life[i], &lv_font_montserrat_bold_56, 0);
+                lv_obj_align(label_mp3_life[i], LV_ALIGN_CENTER, nx, -12);
+            }
+        }
         if (label_mp3_name[i] != NULL)
-            lv_obj_align(label_mp3_name[i], LV_ALIGN_CENTER, 0, 30);
-        apply_label_rotation(label_mp3_life[i], label_mp3_name[i],
-            angle, 30, -30);
+            lv_obj_align(label_mp3_name[i], LV_ALIGN_CENTER, nx, 30);
+        if (orientation_mode == ORIENTATION_MODE_CENTRIC) {
+            apply_label_rotation(label_mp3_life[i], label_mp3_name[i],
+                angle, 10, -30);
+        } else {
+            apply_label_rotation(label_mp3_life[i], label_mp3_name[i],
+                angle, 12, -30);
+        }
         refresh_counter_rows(mp3_panels[i], counter_row_3p[i], counter_value_3p[i], panel_player[i], text_color, angle, counter_angle);
     }
 }
@@ -637,13 +674,13 @@ void build_multiplayer_screen(void)
         label_multiplayer_name[i] = lv_label_create(multiplayer_quadrants[i]);
         lv_label_set_text(label_multiplayer_name[i], player_names[i]);
         lv_obj_set_style_text_color(label_multiplayer_name[i], lv_color_white(), 0);
-        lv_obj_set_style_text_font(label_multiplayer_name[i], &lv_font_montserrat_14, 0);
+        lv_obj_set_style_text_font(label_multiplayer_name[i], &lv_font_montserrat_22, 0);
         lv_obj_align(label_multiplayer_name[i], LV_ALIGN_CENTER, 0, 30);
 
         label_multiplayer_life[i] = lv_label_create(multiplayer_quadrants[i]);
         lv_label_set_text(label_multiplayer_life[i], "40");
         lv_obj_set_style_text_color(label_multiplayer_life[i], lv_color_white(), 0);
-        lv_obj_set_style_text_font(label_multiplayer_life[i], &lv_font_montserrat_32, 0);
+        lv_obj_set_style_text_font(label_multiplayer_life[i], &lv_font_montserrat_bold_56, 0);
         lv_obj_align(label_multiplayer_life[i], LV_ALIGN_CENTER, 0, -30);
 
         create_counter_row(multiplayer_quadrants[i], COUNTER_TYPE_COMMANDER_TAX,
@@ -783,13 +820,13 @@ void build_multiplayer_2p_screen(void)
         label_mp2_name[i] = lv_label_create(mp2_panels[i]);
         lv_label_set_text(label_mp2_name[i], multiplayer_names[p]);
         lv_obj_set_style_text_color(label_mp2_name[i], lv_color_white(), 0);
-        lv_obj_set_style_text_font(label_mp2_name[i], &lv_font_montserrat_14, 0);
+        lv_obj_set_style_text_font(label_mp2_name[i], &lv_font_montserrat_22, 0);
         lv_obj_align(label_mp2_name[i], LV_ALIGN_CENTER, 0, 30);
 
         label_mp2_life[i] = lv_label_create(mp2_panels[i]);
         lv_label_set_text(label_mp2_life[i], "40");
         lv_obj_set_style_text_color(label_mp2_life[i], lv_color_white(), 0);
-        lv_obj_set_style_text_font(label_mp2_life[i], &lv_font_montserrat_32, 0);
+        lv_obj_set_style_text_font(label_mp2_life[i], &lv_font_montserrat_bold_56, 0);
         lv_obj_align(label_mp2_life[i], LV_ALIGN_CENTER, 0, -10);
 
         create_counter_row(mp2_panels[i], COUNTER_TYPE_COMMANDER_TAX,
@@ -842,13 +879,13 @@ void build_multiplayer_3p_screen(void)
         label_mp3_name[i] = lv_label_create(mp3_panels[i]);
         lv_label_set_text(label_mp3_name[i], multiplayer_names[p]);
         lv_obj_set_style_text_color(label_mp3_name[i], lv_color_white(), 0);
-        lv_obj_set_style_text_font(label_mp3_name[i], &lv_font_montserrat_14, 0);
+        lv_obj_set_style_text_font(label_mp3_name[i], &lv_font_montserrat_22, 0);
         lv_obj_align(label_mp3_name[i], LV_ALIGN_CENTER, 0, 30);
 
         label_mp3_life[i] = lv_label_create(mp3_panels[i]);
         lv_label_set_text(label_mp3_life[i], "40");
         lv_obj_set_style_text_color(label_mp3_life[i], lv_color_white(), 0);
-        lv_obj_set_style_text_font(label_mp3_life[i], &lv_font_montserrat_32, 0);
+        lv_obj_set_style_text_font(label_mp3_life[i], &lv_font_montserrat_bold_56, 0);
         lv_obj_align(label_mp3_life[i], LV_ALIGN_CENTER, 0, -12);
 
         create_counter_row(mp3_panels[i], COUNTER_TYPE_COMMANDER_TAX,
