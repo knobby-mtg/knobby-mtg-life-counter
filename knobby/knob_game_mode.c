@@ -98,7 +98,8 @@ static void event_gm_life_cycle(lv_event_t *e)
 {
     (void)e;
 
-    if (temp_life_total == 20) temp_life_total = 30;
+    if (temp_life_total == 20) temp_life_total = 25;
+    else if (temp_life_total == 25) temp_life_total = 30;
     else if (temp_life_total == 30) temp_life_total = 40;
     else temp_life_total = 20;
 
