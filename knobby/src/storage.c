@@ -13,6 +13,7 @@ static int cached_orientation = ORIENTATION_MODE_ABSOLUTE;
 static int cached_num_players = 4;
 static int cached_players_to_track = 1;
 static int cached_life_total = DEFAULT_LIFE_TOTAL;
+static int cached_auto_eliminate = 1; /* 1=ON (default), 0=OFF */
 static char cached_name_list[NAME_LIST_COUNT][NAME_LIST_LEN];
 
 // ---------- init ----------
@@ -54,6 +55,10 @@ void knob_nvs_init(void)
         cached_num_players = (np_val < 1) ? 1 : (np_val > MAX_PLAYERS) ? MAX_PLAYERS : np_val;
         cached_players_to_track = (pt_val < 1) ? 1 : (pt_val > 4) ? 4 : pt_val;
         cached_life_total = (lt_val < 0) ? 0 : (lt_val > LIFE_MAX) ? LIFE_MAX : lt_val;
+
+        int8_t ae_val = 1;
+        nvs_get_i8(handle, "auto_elim", &ae_val);
+        cached_auto_eliminate = (ae_val != 0) ? 1 : 0;
 
         size_t nl_size = sizeof(cached_name_list);
         nvs_get_blob(handle, "name_list", cached_name_list, &nl_size);
@@ -159,6 +164,18 @@ void nvs_set_life_total(int value)
     settings_dirty = true;
 }
 
+// ---------- auto-eliminate ----------
+int nvs_get_auto_eliminate(void)
+{
+    return cached_auto_eliminate;
+}
+
+void nvs_set_auto_eliminate(int value)
+{
+    cached_auto_eliminate = (value != 0) ? 1 : 0;
+    settings_dirty = true;
+}
+
 // ---------- name list ----------
 void nvs_get_name_list(char (*out)[NAME_LIST_LEN])
 {
@@ -185,6 +202,7 @@ void settings_save(void)
         nvs_set_i8(handle, "num_players", (int8_t)cached_num_players);
         nvs_set_i8(handle, "track", (int8_t)cached_players_to_track);
         nvs_set_i16(handle, "life_total", (int16_t)cached_life_total);
+        nvs_set_i8(handle, "auto_elim", (int8_t)cached_auto_eliminate);
         nvs_set_blob(handle, "name_list", cached_name_list, sizeof(cached_name_list));
         nvs_commit(handle);
         nvs_close(handle);

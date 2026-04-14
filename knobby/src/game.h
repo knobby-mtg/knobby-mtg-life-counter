@@ -63,6 +63,10 @@ bool counter_type_is_enabled(counter_type_t type);
 
 bool elimination_action_available(int player);
 void undo_elimination_action(int player);
+void manual_eliminate_player(int player);
+void manual_uneliminate_player(int player);
+
+void check_player_elimination(int player);
 
 // ---------- player colors ----------
 lv_color_t get_player_color_vib(int index, int vibrancy);

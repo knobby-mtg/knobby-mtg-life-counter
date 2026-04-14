@@ -105,17 +105,19 @@ void check_player_elimination(int player)
     bool was_eliminated = player_eliminated[player];
     bool now_eliminated = false;
 
-    if (player_life[player] <= 0) {
-        now_eliminated = true;
-    } else {
-        for (int i = 0; i < MAX_PLAYERS; i++) {
-            if (i != player && cmd_damage_totals[i][player] >= 20) {
-                now_eliminated = true;
-                break;
-            }
-        }
-        if (!now_eliminated && player_counters[player][COUNTER_TYPE_POISON] >= 10) {
+    if (nvs_get_auto_eliminate()) {
+        if (player_life[player] <= 0) {
             now_eliminated = true;
+        } else {
+            for (int i = 0; i < MAX_PLAYERS; i++) {
+                if (i != player && cmd_damage_totals[i][player] >= 20) {
+                    now_eliminated = true;
+                    break;
+                }
+            }
+            if (!now_eliminated && player_counters[player][COUNTER_TYPE_POISON] >= 10) {
+                now_eliminated = true;
+            }
         }
     }
 
@@ -127,6 +129,24 @@ void check_player_elimination(int player)
     if (was_eliminated != now_eliminated) {
         refresh_player_ui();
     }
+}
+
+void manual_eliminate_player(int player)
+{
+    if (player < 0 || player >= MAX_PLAYERS) return;
+    if (player_eliminated[player]) return;
+    player_eliminated[player] = true;
+    clear_player_elimination_action(player);
+    refresh_player_ui();
+}
+
+void manual_uneliminate_player(int player)
+{
+    if (player < 0 || player >= MAX_PLAYERS) return;
+    if (!player_eliminated[player]) return;
+    player_eliminated[player] = false;
+    clear_player_elimination_action(player);
+    refresh_player_ui();
 }
 
 // ---------- player colors ----------
