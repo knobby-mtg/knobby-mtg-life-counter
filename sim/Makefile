@@ -29,7 +29,9 @@ SIM_SRCS := sim_main.c sim_stubs.c
 rwildcard = $(wildcard $1$2) $(foreach d,$(wildcard $1*),$(call rwildcard,$d/,$2))
 LVGL_SRCS := $(call rwildcard,$(LVGL_PATH)/src/,*.c)
 
-ALL_SRCS := $(SIM_SRCS) $(KNOBBY_SRCS) $(LVGL_SRCS)
+FONT_SRCS := $(wildcard $(KNOBBY)/src/fonts/*.c)
+
+ALL_SRCS := $(SIM_SRCS) $(KNOBBY_SRCS) $(FONT_SRCS) $(LVGL_SRCS)
 
 # Object files — flatten into build/ using path-mangled names
 obj_name = $(BUILD)/$(subst /,__,$(subst ..,UP,$(1:.c=.o)))

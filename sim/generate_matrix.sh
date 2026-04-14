@@ -21,7 +21,7 @@ shot() {
 # ============================================================
 # 1. Life preview deltas — 1p mode
 # ============================================================
-for delta in +999 -999 +12 -12 +1 -1; do
+for delta in +444 -444 +12 -12 +1 -1; do
     tag=$(echo "$delta" | tr '+' 'p' | tr '-' 'n')
     shot "1p_preview_${tag}.png" --screen 1p --track 1 \
         --preview-delta "$delta" --preview-player -1
@@ -36,7 +36,7 @@ for track in 2 3 4; do
         orient_name=("absolute" "centric" "tabletop")
         oname=${orient_name[$orient]}
         for player in $(seq 0 $max_player); do
-            for delta in +999 -999 +12 -12 +1 -1; do
+            for delta in +444 -444 +12 -12 +1 -1; do
                 tag=$(echo "$delta" | tr '+' 'p' | tr '-' 'n')
                 shot "${track}p_${oname}_p${player}_preview_${tag}.png" \
                     --screen ${track}p --track "$track" --orientation "$orient" \
@@ -49,7 +49,7 @@ done
 # ============================================================
 # 3. Life totals at specific values — all player modes × orientations
 # ============================================================
-for life in 0 20 40 999; do
+for life in 0 20 40 444; do
     # 1p
     shot "1p_life${life}.png" --screen 1p --track 1 \
         --starting-life "$life" --life "$life"

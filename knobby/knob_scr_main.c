@@ -14,27 +14,13 @@ lv_obj_t *screen_damage = NULL;
 
 // ---------- main UI widgets ----------
 static lv_obj_t *arc_life = NULL;
-static lv_obj_t *life_container = NULL;
 static lv_obj_t *life_hitbox = NULL;
+static lv_obj_t *label_life_total = NULL;
+static lv_obj_t *label_life_preview_total = NULL;
 static lv_obj_t *turn_container = NULL;
 static lv_obj_t *label_turn = NULL;
 static lv_obj_t *label_turn_time = NULL;
 static lv_obj_t *turn_live_dot = NULL;
-
-// 7-segment digits
-static lv_obj_t *digit_hundreds[7];
-static lv_obj_t *digit_tens[7];
-static lv_obj_t *digit_ones[7];
-static lv_obj_t *digit_sign[7];
-static lv_obj_t *digit_sign_plus_vert = NULL;
-
-static lv_obj_t *digit_box_sign = NULL;
-static lv_obj_t *digit_box_hundreds = NULL;
-static lv_obj_t *digit_box_tens = NULL;
-static lv_obj_t *digit_box_ones = NULL;
-
-// preview total label
-static lv_obj_t *label_life_preview_total = NULL;
 
 // ---------- select UI ----------
 static lv_obj_t *label_select_title = NULL;
@@ -46,85 +32,6 @@ static lv_obj_t *label_enemy_damage[MAX_ENEMY_COUNT];
 static lv_obj_t *label_damage_title = NULL;
 static lv_obj_t *label_damage_value = NULL;
 static lv_obj_t *label_damage_hint = NULL;
-
-// ---------- 7-segment helpers ----------
-static void create_digit(lv_obj_t *parent, lv_obj_t **seg)
-{
-    seg[0] = make_seg(parent, 10,   0, 40,  8);  // top
-    seg[1] = make_seg(parent,  0,   8,  8, 44);  // upper-left
-    seg[2] = make_seg(parent, 52,   8,  8, 44);  // upper-right
-    seg[3] = make_seg(parent, 10,  52, 40,  8);  // middle
-    seg[4] = make_seg(parent,  0,  60,  8, 44);  // lower-left
-    seg[5] = make_seg(parent, 52,  60,  8, 44);  // lower-right
-    seg[6] = make_seg(parent, 10, 104, 40,  8);  // bottom
-}
-
-static void set_seg_style(lv_obj_t *seg, lv_color_t color, bool on)
-{
-    if (on) {
-        lv_obj_set_style_bg_color(seg, color, 0);
-        lv_obj_set_style_bg_opa(seg, LV_OPA_COVER, 0);
-    } else {
-        lv_obj_set_style_bg_color(seg, lv_color_hex(0x101010), 0);
-        lv_obj_set_style_bg_opa(seg, LV_OPA_30, 0);
-    }
-}
-
-static void set_digit_segments(lv_obj_t **seg, int value, lv_color_t color, bool visible)
-{
-    int i;
-
-    for (i = 0; i < 7; i++) {
-        if (!visible) {
-            lv_obj_add_flag(seg[i], LV_OBJ_FLAG_HIDDEN);
-        } else {
-            lv_obj_clear_flag(seg[i], LV_OBJ_FLAG_HIDDEN);
-            set_seg_style(seg[i], color, seg_map[value][i] ? true : false);
-        }
-    }
-}
-
-static void set_minus_segments(lv_obj_t **seg, lv_color_t color, bool visible)
-{
-    int i;
-
-    if (digit_sign_plus_vert != NULL) {
-        lv_obj_add_flag(digit_sign_plus_vert, LV_OBJ_FLAG_HIDDEN);
-    }
-
-    for (i = 0; i < 7; i++) {
-        if (!visible) {
-            lv_obj_add_flag(seg[i], LV_OBJ_FLAG_HIDDEN);
-        } else {
-            lv_obj_clear_flag(seg[i], LV_OBJ_FLAG_HIDDEN);
-            set_seg_style(seg[i], color, (i == 3));
-        }
-    }
-}
-
-static void set_plus_segments(lv_obj_t **seg, lv_color_t color, bool visible)
-{
-    int i;
-
-    if (digit_sign_plus_vert != NULL) {
-        if (!visible) {
-            lv_obj_add_flag(digit_sign_plus_vert, LV_OBJ_FLAG_HIDDEN);
-        } else {
-            lv_obj_clear_flag(digit_sign_plus_vert, LV_OBJ_FLAG_HIDDEN);
-            lv_obj_set_style_bg_color(digit_sign_plus_vert, color, 0);
-            lv_obj_set_style_bg_opa(digit_sign_plus_vert, LV_OPA_COVER, 0);
-        }
-    }
-
-    for (i = 0; i < 7; i++) {
-        if (!visible) {
-            lv_obj_add_flag(seg[i], LV_OBJ_FLAG_HIDDEN);
-        } else {
-            lv_obj_clear_flag(seg[i], LV_OBJ_FLAG_HIDDEN);
-            set_seg_style(seg[i], color, (i == 3));
-        }
-    }
-}
 
 // ---------- refresh functions ----------
 static void refresh_ring(void)
@@ -186,133 +93,27 @@ void refresh_turn_ui(void)
 static void refresh_life_digits(void)
 {
     int display_value = life_preview_active ? pending_life_delta : life_total;
-    int abs_v = (display_value < 0) ? -display_value : display_value;
-    int hundreds = abs_v / 100;
-    int tens = (abs_v / 10) % 10;
-    int ones = abs_v % 10;
     bool negative = (display_value < 0);
-    bool positive_preview = life_preview_active && (display_value > 0);
-    lv_coord_t x_offset = 0;
-    lv_color_t c = life_preview_active ? (negative ? lv_palette_main(LV_PALETTE_RED) : lv_palette_main(LV_PALETTE_GREEN))
-                                   : get_life_color(display_value, nvs_get_life_total());
+    lv_color_t c;
+    char buf[16];
 
-    if (positive_preview) {
-        if (abs_v >= 100) x_offset = -34;
-        else if (abs_v >= 10) x_offset = -12;
-        else x_offset = 0;
-    } else if (negative) {
-        if (abs_v >= 100) x_offset = -25;
-        else x_offset = 0;
-    }
-
-    if (life_container != NULL) {
-        lv_obj_align(life_container, LV_ALIGN_CENTER, x_offset, -6);
-    }
-    if (life_hitbox != NULL) {
-        lv_obj_align(life_hitbox, LV_ALIGN_CENTER, x_offset, -8);
+    if (life_preview_active) {
+        c = negative ? lv_palette_main(LV_PALETTE_RED)
+                     : lv_palette_main(LV_PALETTE_GREEN);
+        if (display_value > 0)
+            snprintf(buf, sizeof(buf), "+%d", display_value);
+        else
+            snprintf(buf, sizeof(buf), "%d", display_value);
+    } else {
+        c = get_life_color(display_value, nvs_get_life_total());
+        snprintf(buf, sizeof(buf), "%d", display_value);
     }
 
-    lv_obj_add_flag(digit_box_sign, LV_OBJ_FLAG_HIDDEN);
-    lv_obj_add_flag(digit_box_hundreds, LV_OBJ_FLAG_HIDDEN);
-    lv_obj_add_flag(digit_box_tens, LV_OBJ_FLAG_HIDDEN);
-    lv_obj_add_flag(digit_box_ones, LV_OBJ_FLAG_HIDDEN);
-    set_minus_segments(digit_sign, c, false);
-    set_plus_segments(digit_sign, c, false);
+    lv_label_set_text(label_life_total, buf);
+    lv_obj_set_style_text_color(label_life_total, c, 0);
+    lv_obj_align(label_life_total, LV_ALIGN_CENTER, 0, -6);
 
-    if (positive_preview && abs_v >= 100) {
-        lv_obj_set_pos(digit_box_sign, 24, 0);
-        lv_obj_set_pos(digit_box_hundreds, 82, 0);
-        lv_obj_set_pos(digit_box_tens, 152, 0);
-        lv_obj_set_pos(digit_box_ones, 222, 0);
-        lv_obj_clear_flag(digit_box_sign, LV_OBJ_FLAG_HIDDEN);
-        lv_obj_clear_flag(digit_box_hundreds, LV_OBJ_FLAG_HIDDEN);
-        lv_obj_clear_flag(digit_box_tens, LV_OBJ_FLAG_HIDDEN);
-        lv_obj_clear_flag(digit_box_ones, LV_OBJ_FLAG_HIDDEN);
-        set_plus_segments(digit_sign, c, true);
-        set_digit_segments(digit_hundreds, hundreds, c, true);
-        set_digit_segments(digit_tens, tens, c, true);
-        set_digit_segments(digit_ones, ones, c, true);
-    }
-    else if (positive_preview && abs_v >= 10) {
-        lv_obj_set_pos(digit_box_sign, 54, 0);
-        lv_obj_set_pos(digit_box_tens, 112, 0);
-        lv_obj_set_pos(digit_box_ones, 182, 0);
-        lv_obj_clear_flag(digit_box_sign, LV_OBJ_FLAG_HIDDEN);
-        lv_obj_clear_flag(digit_box_tens, LV_OBJ_FLAG_HIDDEN);
-        lv_obj_clear_flag(digit_box_ones, LV_OBJ_FLAG_HIDDEN);
-        set_plus_segments(digit_sign, c, true);
-        set_digit_segments(digit_tens, tens, c, true);
-        set_digit_segments(digit_ones, ones, c, true);
-    }
-    else if (positive_preview) {
-        lv_obj_set_pos(digit_box_sign, 86, 0);
-        lv_obj_set_pos(digit_box_ones, 150, 0);
-        lv_obj_clear_flag(digit_box_sign, LV_OBJ_FLAG_HIDDEN);
-        lv_obj_clear_flag(digit_box_ones, LV_OBJ_FLAG_HIDDEN);
-        set_plus_segments(digit_sign, c, true);
-        set_digit_segments(digit_ones, ones, c, true);
-    }
-    else if (negative && abs_v >= 100) {
-        lv_obj_set_pos(digit_box_sign, 0, 0);
-        lv_obj_set_pos(digit_box_hundreds, 70, 0);
-        lv_obj_set_pos(digit_box_tens, 140, 0);
-        lv_obj_set_pos(digit_box_ones, 210, 0);
-        lv_obj_clear_flag(digit_box_sign, LV_OBJ_FLAG_HIDDEN);
-        lv_obj_clear_flag(digit_box_hundreds, LV_OBJ_FLAG_HIDDEN);
-        lv_obj_clear_flag(digit_box_tens, LV_OBJ_FLAG_HIDDEN);
-        lv_obj_clear_flag(digit_box_ones, LV_OBJ_FLAG_HIDDEN);
-        set_minus_segments(digit_sign, c, true);
-        set_digit_segments(digit_hundreds, hundreds, c, true);
-        set_digit_segments(digit_tens, tens, c, true);
-        set_digit_segments(digit_ones, ones, c, true);
-    }
-    else if (negative && abs_v >= 10) {
-        lv_obj_set_pos(digit_box_sign, 10, 0);
-        lv_obj_set_pos(digit_box_tens, 80, 0);
-        lv_obj_set_pos(digit_box_ones, 150, 0);
-        lv_obj_clear_flag(digit_box_sign, LV_OBJ_FLAG_HIDDEN);
-        lv_obj_clear_flag(digit_box_tens, LV_OBJ_FLAG_HIDDEN);
-        lv_obj_clear_flag(digit_box_ones, LV_OBJ_FLAG_HIDDEN);
-        set_minus_segments(digit_sign, c, true);
-        set_digit_segments(digit_tens, tens, c, true);
-        set_digit_segments(digit_ones, ones, c, true);
-    }
-    else if (negative) {
-        lv_obj_set_pos(digit_box_sign, 45, 0);
-        lv_obj_set_pos(digit_box_ones, 115, 0);
-        lv_obj_clear_flag(digit_box_sign, LV_OBJ_FLAG_HIDDEN);
-        lv_obj_clear_flag(digit_box_ones, LV_OBJ_FLAG_HIDDEN);
-        set_minus_segments(digit_sign, c, true);
-        set_digit_segments(digit_ones, ones, c, true);
-    }
-    else if (abs_v >= 100) {
-        lv_obj_set_pos(digit_box_hundreds, 45, 0);
-        lv_obj_set_pos(digit_box_tens, 115, 0);
-        lv_obj_set_pos(digit_box_ones, 185, 0);
-        lv_obj_clear_flag(digit_box_hundreds, LV_OBJ_FLAG_HIDDEN);
-        lv_obj_clear_flag(digit_box_tens, LV_OBJ_FLAG_HIDDEN);
-        lv_obj_clear_flag(digit_box_ones, LV_OBJ_FLAG_HIDDEN);
-        set_digit_segments(digit_hundreds, hundreds, c, true);
-        set_digit_segments(digit_tens, tens, c, true);
-        set_digit_segments(digit_ones, ones, c, true);
-    }
-    else if (abs_v >= 10) {
-        lv_obj_set_pos(digit_box_tens, 80, 0);
-        lv_obj_set_pos(digit_box_ones, 150, 0);
-        lv_obj_clear_flag(digit_box_tens, LV_OBJ_FLAG_HIDDEN);
-        lv_obj_clear_flag(digit_box_ones, LV_OBJ_FLAG_HIDDEN);
-        set_digit_segments(digit_tens, tens, c, true);
-        set_digit_segments(digit_ones, ones, c, true);
-    }
-    else {
-        lv_obj_set_pos(digit_box_ones, 115, 0);
-        lv_obj_clear_flag(digit_box_ones, LV_OBJ_FLAG_HIDDEN);
-        set_digit_segments(digit_ones, ones, c, true);
-    }
-
-    // Update preview total label when in preview mode
     if (life_preview_active && label_life_preview_total != NULL) {
-        char buf[16];
         int new_total = life_total + pending_life_delta;
         snprintf(buf, sizeof(buf), "= %d", new_total);
         lv_label_set_text(label_life_preview_total, buf);
@@ -477,28 +278,20 @@ void build_main_screen(void)
     lv_obj_add_flag(life_hitbox, LV_OBJ_FLAG_CLICKABLE);
     lv_obj_add_event_cb(life_hitbox, event_open_select, LV_EVENT_LONG_PRESSED, NULL);
 
-    life_container = make_plain_box(screen_1p, 290, 112);
-    lv_obj_align(life_container, LV_ALIGN_CENTER, 0, -6);
-
-    digit_box_sign = make_plain_box(life_container, 60, 112);
-    create_digit(digit_box_sign, digit_sign);
-    digit_sign_plus_vert = make_seg(digit_box_sign, 27, 34, 6, 40);
-    lv_obj_set_style_radius(digit_sign_plus_vert, 2, 0);
-    lv_obj_add_flag(digit_sign_plus_vert, LV_OBJ_FLAG_HIDDEN);
-
-    digit_box_hundreds = make_plain_box(life_container, 60, 112);
-    create_digit(digit_box_hundreds, digit_hundreds);
-
-    digit_box_tens = make_plain_box(life_container, 60, 112);
-    create_digit(digit_box_tens, digit_tens);
-
-    digit_box_ones = make_plain_box(life_container, 60, 112);
-    create_digit(digit_box_ones, digit_ones);
+    label_life_total = lv_label_create(screen_1p);
+    {
+        char buf[16];
+        snprintf(buf, sizeof(buf), "%d", life_total);
+        lv_label_set_text(label_life_total, buf);
+    }
+    lv_obj_set_style_text_font(label_life_total, &lv_font_montserrat_bold_116, 0);
+    lv_obj_set_style_text_color(label_life_total, lv_color_white(), 0);
+    lv_obj_align(label_life_total, LV_ALIGN_CENTER, 0, -6);
 
     label_life_preview_total = lv_label_create(screen_1p);
     lv_label_set_text(label_life_preview_total, "");
     lv_obj_set_style_text_color(label_life_preview_total, lv_palette_main(LV_PALETTE_GREEN), 0);
-    lv_obj_set_style_text_font(label_life_preview_total, &lv_font_montserrat_16, 0);
+    lv_obj_set_style_text_font(label_life_preview_total, &lv_font_montserrat_regular_48, 0);
     lv_obj_align(label_life_preview_total, LV_ALIGN_CENTER, 0, 80);
     lv_obj_add_flag(label_life_preview_total, LV_OBJ_FLAG_HIDDEN);
 

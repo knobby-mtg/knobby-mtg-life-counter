@@ -66,20 +66,6 @@ typedef struct {
     lv_event_code_t event;
 } quad_item_t;
 
-// ---------- 7-segment map ----------
-static const uint8_t seg_map[10][7] = {
-    {1,1,1,0,1,1,1}, // 0
-    {0,0,1,0,0,1,0}, // 1
-    {1,0,1,1,1,0,1}, // 2
-    {1,0,1,1,0,1,1}, // 3
-    {0,1,1,1,0,1,0}, // 4
-    {1,1,0,1,0,1,1}, // 5
-    {1,1,0,1,1,1,1}, // 6
-    {1,0,1,0,0,1,0}, // 7
-    {1,1,1,1,1,1,1}, // 8
-    {1,1,1,1,0,1,1}  // 9
-};
-
 // ---------- utility functions ----------
 static inline int clamp_life(int value)
 {
@@ -178,20 +164,6 @@ static inline lv_obj_t *make_plain_box(lv_obj_t *parent,
     lv_obj_remove_style_all(obj);
     lv_obj_set_size(obj, w, h);
     lv_obj_clear_flag(obj, LV_OBJ_FLAG_SCROLLABLE | LV_OBJ_FLAG_CLICKABLE);
-    return obj;
-}
-
-static inline lv_obj_t *make_seg(lv_obj_t *parent,
-                                  lv_coord_t x, lv_coord_t y,
-                                  lv_coord_t w, lv_coord_t h)
-{
-    lv_obj_t *obj = lv_obj_create(parent);
-    lv_obj_remove_style_all(obj);
-    lv_obj_set_size(obj, w, h);
-    lv_obj_set_pos(obj, x, y);
-    lv_obj_set_style_radius(obj, 2, 0);
-    lv_obj_set_style_bg_opa(obj, LV_OPA_COVER, 0);
-    lv_obj_clear_flag(obj, LV_OBJ_FLAG_SCROLLABLE);
     return obj;
 }
 

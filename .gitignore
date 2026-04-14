@@ -63,8 +63,10 @@ build/libraries/
 # Misc
 *.tmp
 
+# Node modules (lv_font_conv installed locally for font generation)
+node_modules/
+
 # Simulator
 sim/build/
 sim/knobby_sim
-sim/screenshots/*.png
-sim/screenshots/index.html
+sim/screenshots/
