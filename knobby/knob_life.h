@@ -15,6 +15,7 @@ typedef struct {
 	const char *menu_label;
 	const char *display_name;
 	const char *badge_text;
+	const char *icon_text;
 	uint32_t accent_color;
 	bool enabled;
 } counter_definition_t;

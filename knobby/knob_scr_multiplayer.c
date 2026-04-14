@@ -49,6 +49,23 @@ static lv_obj_t *counter_value_3p[3][COUNTER_TYPE_COUNT];
 static void open_multiplayer_all_damage_screen(void);
 static void open_multiplayer_counter_edit_screen(counter_type_t type);
 
+static const lv_font_t *get_counter_badge_font(const counter_definition_t *definition)
+{
+    if (definition != NULL && definition->icon_text != NULL) {
+        return &mana_counter_icons_16;
+    }
+
+    return &lv_font_montserrat_14;
+}
+
+static const char *get_counter_badge_text(const counter_definition_t *definition)
+{
+    if (definition == NULL) return "?";
+    if (definition->icon_text != NULL) return definition->icon_text;
+    if (definition->badge_text != NULL) return definition->badge_text;
+    return "?";
+}
+
 static void apply_object_rotation(lv_obj_t *obj, int16_t angle, int pivot_x, int pivot_y)
 {
     if (obj == NULL) return;
@@ -64,30 +81,20 @@ static void apply_object_rotation(lv_obj_t *obj, int16_t angle, int pivot_x, int
 }
 
 static void create_counter_row(lv_obj_t *parent, counter_type_t type,
-                               lv_obj_t **row_out, lv_obj_t **value_out)
+                               lv_obj_t **row_out, lv_obj_t **value_out, int player_index)
 {
     const counter_definition_t *definition = get_counter_definition(type);
     lv_obj_t *row;
-    lv_obj_t *icon;
     lv_obj_t *glyph;
 
     row = make_plain_box(parent, 34, 34);
     lv_obj_add_flag(row, LV_OBJ_FLAG_HIDDEN);
 
-    icon = lv_obj_create(row);
-    lv_obj_remove_style_all(icon);
-    lv_obj_set_size(icon, 16, 16);
-    lv_obj_align(icon, LV_ALIGN_TOP_MID, 0, 0);
-    lv_obj_set_style_radius(icon, LV_RADIUS_CIRCLE, 0);
-    lv_obj_set_style_bg_opa(icon, LV_OPA_COVER, 0);
-    lv_obj_set_style_bg_color(icon,
-        definition != NULL ? lv_color_hex(definition->accent_color) : lv_color_hex(0x303030), 0);
-
-    glyph = lv_label_create(icon);
-    lv_label_set_text(glyph, definition != NULL ? definition->badge_text : "?");
-    lv_obj_set_style_text_color(glyph, lv_color_white(), 0);
-    lv_obj_set_style_text_font(glyph, &lv_font_montserrat_14, 0);
-    lv_obj_center(glyph);
+    glyph = lv_label_create(row);
+    lv_label_set_text(glyph, get_counter_badge_text(definition));
+    lv_obj_set_style_text_color(glyph, get_player_text_color(player_index), 0);
+    lv_obj_set_style_text_font(glyph, get_counter_badge_font(definition), 0);
+    lv_obj_align(glyph, LV_ALIGN_TOP_MID, 0, 0);
 
     *value_out = lv_label_create(row);
     lv_label_set_text(*value_out, "0");
@@ -230,6 +237,13 @@ static void refresh_counter_rows(lv_obj_t *panel, lv_obj_t **rows, lv_obj_t **va
         snprintf(buf, sizeof(buf), "%d", value);
         lv_label_set_text(value_labels[counter_type], buf);
         lv_obj_set_style_text_color(value_labels[counter_type], text_color, 0);
+        /* Also update the icon/glyph color (first child of the row) */
+        {
+            lv_obj_t *glyph = lv_obj_get_child(rows[counter_type], 0);
+            if (glyph != NULL) {
+                lv_obj_set_style_text_color(glyph, text_color, 0);
+            }
+        }
         lv_obj_clear_flag(rows[counter_type], LV_OBJ_FLAG_HIDDEN);
         lv_obj_align(rows[counter_type], LV_ALIGN_CENTER, local_x, local_y);
         apply_object_rotation(rows[counter_type], row_angle, 0, 0);
@@ -685,16 +699,16 @@ void build_multiplayer_screen(void)
 
         create_counter_row(multiplayer_quadrants[i], COUNTER_TYPE_COMMANDER_TAX,
             &counter_row_4p[i][COUNTER_TYPE_COMMANDER_TAX],
-            &counter_value_4p[i][COUNTER_TYPE_COMMANDER_TAX]);
+            &counter_value_4p[i][COUNTER_TYPE_COMMANDER_TAX], i);
         create_counter_row(multiplayer_quadrants[i], COUNTER_TYPE_PARTNER_TAX,
             &counter_row_4p[i][COUNTER_TYPE_PARTNER_TAX],
-            &counter_value_4p[i][COUNTER_TYPE_PARTNER_TAX]);
+            &counter_value_4p[i][COUNTER_TYPE_PARTNER_TAX], i);
         create_counter_row(multiplayer_quadrants[i], COUNTER_TYPE_POISON,
             &counter_row_4p[i][COUNTER_TYPE_POISON],
-            &counter_value_4p[i][COUNTER_TYPE_POISON]);
+            &counter_value_4p[i][COUNTER_TYPE_POISON], i);
         create_counter_row(multiplayer_quadrants[i], COUNTER_TYPE_EXPERIENCE,
             &counter_row_4p[i][COUNTER_TYPE_EXPERIENCE],
-            &counter_value_4p[i][COUNTER_TYPE_EXPERIENCE]);
+            &counter_value_4p[i][COUNTER_TYPE_EXPERIENCE], i);
 
     }
 
@@ -831,16 +845,16 @@ void build_multiplayer_2p_screen(void)
 
         create_counter_row(mp2_panels[i], COUNTER_TYPE_COMMANDER_TAX,
             &counter_row_2p[i][COUNTER_TYPE_COMMANDER_TAX],
-            &counter_value_2p[i][COUNTER_TYPE_COMMANDER_TAX]);
+            &counter_value_2p[i][COUNTER_TYPE_COMMANDER_TAX], p);
         create_counter_row(mp2_panels[i], COUNTER_TYPE_PARTNER_TAX,
             &counter_row_2p[i][COUNTER_TYPE_PARTNER_TAX],
-            &counter_value_2p[i][COUNTER_TYPE_PARTNER_TAX]);
+            &counter_value_2p[i][COUNTER_TYPE_PARTNER_TAX], p);
         create_counter_row(mp2_panels[i], COUNTER_TYPE_POISON,
             &counter_row_2p[i][COUNTER_TYPE_POISON],
-            &counter_value_2p[i][COUNTER_TYPE_POISON]);
+            &counter_value_2p[i][COUNTER_TYPE_POISON], p);
         create_counter_row(mp2_panels[i], COUNTER_TYPE_EXPERIENCE,
             &counter_row_2p[i][COUNTER_TYPE_EXPERIENCE],
-            &counter_value_2p[i][COUNTER_TYPE_EXPERIENCE]);
+            &counter_value_2p[i][COUNTER_TYPE_EXPERIENCE], p);
 
     }
 }
@@ -890,15 +904,15 @@ void build_multiplayer_3p_screen(void)
 
         create_counter_row(mp3_panels[i], COUNTER_TYPE_COMMANDER_TAX,
             &counter_row_3p[i][COUNTER_TYPE_COMMANDER_TAX],
-            &counter_value_3p[i][COUNTER_TYPE_COMMANDER_TAX]);
+            &counter_value_3p[i][COUNTER_TYPE_COMMANDER_TAX], p);
         create_counter_row(mp3_panels[i], COUNTER_TYPE_PARTNER_TAX,
             &counter_row_3p[i][COUNTER_TYPE_PARTNER_TAX],
-            &counter_value_3p[i][COUNTER_TYPE_PARTNER_TAX]);
+            &counter_value_3p[i][COUNTER_TYPE_PARTNER_TAX], p);
         create_counter_row(mp3_panels[i], COUNTER_TYPE_POISON,
             &counter_row_3p[i][COUNTER_TYPE_POISON],
-            &counter_value_3p[i][COUNTER_TYPE_POISON]);
+            &counter_value_3p[i][COUNTER_TYPE_POISON], p);
         create_counter_row(mp3_panels[i], COUNTER_TYPE_EXPERIENCE,
             &counter_row_3p[i][COUNTER_TYPE_EXPERIENCE],
-            &counter_value_3p[i][COUNTER_TYPE_EXPERIENCE]);
+            &counter_value_3p[i][COUNTER_TYPE_EXPERIENCE], p);
     }
 }
