@@ -382,9 +382,14 @@ void build_rename_screen(void)
     lv_obj_set_style_pad_row(mru_list_container, 2, 0);
     lv_obj_set_scrollbar_mode(mru_list_container, LV_SCROLLBAR_MODE_OFF);
 
-    btn_mru_select = make_button(screen_player_name, "Select", 120, 38, event_mru_select);
-    lv_obj_align(btn_mru_select, LV_ALIGN_TOP_MID, 0, 278);
+    btn_mru_select = lv_btn_create(screen_player_name);
+    lv_obj_set_size(btn_mru_select, 120, 38);
+    lv_obj_add_event_cb(btn_mru_select, event_mru_select, LV_EVENT_SHORT_CLICKED, NULL);
     lv_obj_add_event_cb(btn_mru_select, event_mru_delete, LV_EVENT_LONG_PRESSED, NULL);
+    lv_obj_t *btn_mru_label = lv_label_create(btn_mru_select);
+    lv_label_set_text(btn_mru_label, "Select");
+    lv_obj_center(btn_mru_label);
+    lv_obj_align(btn_mru_select, LV_ALIGN_TOP_MID, 0, 278);
 
     /* --- Keyboard mode widgets (hidden initially) --- */
     textarea_name = lv_textarea_create(screen_player_name);
