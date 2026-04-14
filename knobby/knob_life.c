@@ -44,7 +44,7 @@ static lv_timer_t *multiplayer_life_preview_timer = NULL;
 #define MANA_ICON_COMMANDER "\xEE\xA7\x86"
 #define MANA_ICON_PARTY     "\xEE\xA6\x87"
 #define MANA_ICON_SKULL     "\xEE\x98\x98"
-#define MANA_ICON_LEVEL     "\xEE\xA7\x87"
+#define MANA_ICON_LEVEL     "\xEE\xA4\x80"
 
 static const counter_definition_t counter_definitions[COUNTER_TYPE_COUNT] = {
     {"Commander\nTax", "Commander Tax", "C", MANA_ICON_COMMANDER, 0xA84300, true},
