@@ -449,6 +449,7 @@ int main(int argc, char *argv[])
             open_damage_log_screen(); \
         } \
         refresh_main_ui(); \
+        lv_obj_update_layout(lv_scr_act()); \
         refresh_multiplayer_ui(); \
         refresh_select_ui(); \
         refresh_damage_ui(); \
