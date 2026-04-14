@@ -197,10 +197,10 @@ static void event_counter_apply(lv_event_t *e)
 void build_player_menu_screen(void)
 {
     quad_item_t items[4] = {
-        {"Rename",      event_menu_rename,     true,  LV_EVENT_CLICKED},
+        {"Rename",      event_menu_rename,     true,  LV_EVENT_SHORT_CLICKED},
         {"Commander\nDamage", event_menu_cmd_damage, true,  LV_EVENT_CLICKED},
         {"All\nDamage", event_menu_all_damage, true,  LV_EVENT_CLICKED},
-        {"Counters",    event_menu_counters,   true,  LV_EVENT_CLICKED},
+        {"Counters",    event_menu_counters,   true,  LV_EVENT_SHORT_CLICKED},
     };
     build_quad_screen(&screen_player_menu, items);
 
