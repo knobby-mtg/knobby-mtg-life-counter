@@ -29,6 +29,8 @@ static lv_obj_t *btn_deselect = NULL;
 static lv_obj_t *label_deselect_quad = NULL;
 static lv_obj_t *btn_orientation = NULL;
 static lv_obj_t *label_orientation_quad = NULL;
+static lv_obj_t *btn_auto_eliminate = NULL;
+static lv_obj_t *label_auto_eliminate_quad = NULL;
 static lv_obj_t *arc_brightness = NULL;
 static lv_obj_t *label_settings_value = NULL;
 static lv_obj_t *label_settings_hint = NULL;
@@ -291,6 +293,23 @@ static void event_screen_orientation(lv_event_t *e)
     set_btn_color(btn_orientation, orientation_color(val));
 }
 
+static const char *auto_eliminate_label(int val)
+{
+    return val ? "Auto\nElimination\nON" : "Auto\nElimination\nOFF";
+}
+
+static void event_screen_auto_eliminate(lv_event_t *e)
+{
+    int val;
+    (void)e;
+    val = !nvs_get_auto_eliminate();
+    nvs_set_auto_eliminate(val);
+    if (label_auto_eliminate_quad) {
+        lv_label_set_text(label_auto_eliminate_quad, auto_eliminate_label(val));
+    }
+    set_btn_color(btn_auto_eliminate, val ? TOGGLE_ON : TOGGLE_OFF);
+}
+
 static void event_screen_more(lv_event_t *e)
 {
     (void)e;
@@ -373,7 +392,7 @@ void build_quad_menus(void)
         {color_mode_label(nvs_get_color_mode()), event_screen_color_mode, true, LV_EVENT_CLICKED},
         {deselect_label(nvs_get_deselect_timeout()), event_screen_deselect, true, LV_EVENT_CLICKED},
         {orientation_mode_label(nvs_get_orientation()), event_screen_orientation, true, LV_EVENT_CLICKED},
-        {"",              NULL, false, LV_EVENT_CLICKED},
+        {auto_eliminate_label(nvs_get_auto_eliminate()), event_screen_auto_eliminate, true, LV_EVENT_CLICKED},
     };
     build_quad_screen(&screen_settings_page2, page2_items);
 
@@ -388,6 +407,10 @@ void build_quad_menus(void)
     btn_orientation = lv_obj_get_child(screen_settings_page2, 2);
     label_orientation_quad = lv_obj_get_child(btn_orientation, 0);
     set_btn_color(btn_orientation, orientation_color(nvs_get_orientation()));
+
+    btn_auto_eliminate = lv_obj_get_child(screen_settings_page2, 3);
+    label_auto_eliminate_quad = lv_obj_get_child(btn_auto_eliminate, 0);
+    set_btn_color(btn_auto_eliminate, nvs_get_auto_eliminate() ? TOGGLE_ON : TOGGLE_OFF);
 }
 
 void build_settings_screen(void)

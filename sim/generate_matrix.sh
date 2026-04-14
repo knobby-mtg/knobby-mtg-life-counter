@@ -171,14 +171,22 @@ done
 
 for cm in 0 1; do
     cm_name=("player" "life")
-    for dt in 0 1 2 3; do
-        dt_name=("never" "5s" "15s" "30s")
-        for rot in 0 1 2; do
-            rot_name=("absolute" "centric" "tabletop")
-            shot "settings_more_cm${cm_name[$cm]}_ds${dt_name[$dt]}_${rot_name[$rot]}.png" \
-                --screen settings-more --color-mode "$cm" --deselect "$dt" --orientation "$rot"
-        done
-    done
+    shot "settings_more_cm${cm_name[$cm]}.png" --screen settings-more --color-mode "$cm"
+done
+
+for dt in 0 1 2 3; do
+    dt_name=("never" "5s" "15s" "30s")
+    shot "settings_more_ds${dt_name[$dt]}.png" --screen settings-more --deselect "$dt"
+done
+
+for rot in 0 1 2; do
+    rot_name=("absolute" "centric" "tabletop")
+    shot "settings_more_orient_${rot_name[$rot]}.png" --screen settings-more --orientation "$rot"
+done
+
+for ae in 0 1; do
+    ae_name=("aeoff" "aeon")
+    shot "settings_more_${ae_name[$ae]}.png" --screen settings-more --auto-eliminate "$ae"
 done
 
 # ============================================================

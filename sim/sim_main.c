@@ -195,6 +195,7 @@ static void print_usage(void)
            "  --brightness <n>       Brightness percent 1-100 (default: 30)\n"
            "  --auto-dim <n>         0=OFF, 1=15s, 2=30s, 3=60s (default: 0)\n"
            "  --deselect <n>         0=never, 1=5s, 2=15s, 3=30s (default: 0)\n"
+           "  --auto-eliminate <n>   0=OFF, 1=ON (default: 1)\n"
            "\nSpecial state:\n"
            "  --dice <n>             Set dice roll result (1-20)\n"
            "  --counter-type <n>     Counter type for counter-edit: 0=cmd tax, 1=partner tax,\n"
@@ -345,6 +346,8 @@ int main(int argc, char *argv[])
             sim_nvs_preset_i8("auto_dim", (int8_t)atoi(argv[++i]));
         } else if (strcmp(argv[i], "--deselect") == 0 && i + 1 < argc) {
             sim_nvs_preset_i8("desel_time", (int8_t)atoi(argv[++i]));
+        } else if (strcmp(argv[i], "--auto-eliminate") == 0 && i + 1 < argc) {
+            sim_nvs_preset_i8("auto_elim", (int8_t)atoi(argv[++i]));
         } else if (strcmp(argv[i], "--dice") == 0 && i + 1 < argc) {
             dice_val = atoi(argv[++i]);
             dice_set = 1;

@@ -131,7 +131,18 @@ static void event_menu_counters(lv_event_t *e)
 static void event_eliminated_undo(lv_event_t *e)
 {
     (void)e;
-    undo_elimination_action(menu_player);
+    if (elimination_action_available(menu_player)) {
+        undo_elimination_action(menu_player);
+    } else {
+        manual_uneliminate_player(menu_player);
+    }
+    back_to_main();
+}
+
+static void event_menu_eliminate(lv_event_t *e)
+{
+    (void)e;
+    manual_eliminate_player(menu_player);
     back_to_main();
 }
 
@@ -196,6 +207,10 @@ void build_player_menu_screen(void)
     /* Long-press Rename to rename all players sequentially */
     lv_obj_t *rename_btn = lv_obj_get_child(screen_player_menu, 0);
     lv_obj_add_event_cb(rename_btn, event_menu_rename_all, LV_EVENT_LONG_PRESSED, NULL);
+
+    /* Long-press Counters to manually eliminate */
+    lv_obj_t *counters_btn = lv_obj_get_child(screen_player_menu, 3);
+    lv_obj_add_event_cb(counters_btn, event_menu_eliminate, LV_EVENT_LONG_PRESSED, NULL);
 }
 
 void build_eliminated_player_menu_screen(void)
