@@ -29,8 +29,12 @@ ifeq ($(OS),Windows_NT)
     # Python — Windows prefers 'python' over 'python3'
     PYTHON    ?= python
     
-    # Emscripten compiler — Windows requires .bat extension
-    EMCC      ?= emcc.bat
+    # Emscripten compiler — Windows requires .bat extension and cmd.exe wrapper
+    ifneq ($(wildcard emsdk/upstream/emscripten/emcc.bat),)
+        EMCC ?= cmd.exe /c "emsdk\upstream\emscripten\emcc.bat"
+    else
+        EMCC ?= cmd.exe /c emcc.bat
+    endif
 else
     MAKE      := make
     
@@ -41,7 +45,11 @@ else
     PYTHON    ?= python3
     
     # Emscripten compiler — passed in from shell when available
-    EMCC      ?= emcc
+    ifneq ($(wildcard emsdk/upstream/emscripten/emcc),)
+        EMCC ?= ./emsdk/upstream/emscripten/emcc
+    else
+        EMCC ?= emcc
+    endif
 endif
 
 # Arduino CLI — standard install path (rarely needs changing)
