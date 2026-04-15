@@ -1,6 +1,7 @@
 #include "hw.h"
 #include "storage.h"
 #include "driver/ledc.h"
+#include "esp_sleep.h"
 
 // ---------- private constants ----------
 #include "pincfg.h"
@@ -21,8 +22,10 @@ bool dimmed = false;
 float battery_voltage = 0.0f;
 int battery_percent = -1;
 
+static void check_low_battery_cutoff(void);
 static uint32_t battery_sample_tick = 0;
 static bool battery_sample_valid = false;
+static int low_battery_consecutive = 0;
 static uint32_t last_activity_tick = 0;
 static uint32_t undim_tick = 0;
 static lv_timer_t *auto_dim_timer = NULL;
@@ -72,6 +75,33 @@ void update_battery_measurement(bool force)
     battery_voltage = knob_read_battery_voltage();
     battery_sample_tick = lv_tick_get();
     battery_sample_valid = (battery_voltage > 0.0f);
+
+    check_low_battery_cutoff();
+}
+
+static void check_low_battery_cutoff(void)
+{
+    if (!battery_sample_valid) return;
+
+    if (battery_voltage <= LOW_BATTERY_VOLTAGE) {
+        low_battery_consecutive++;
+        if (low_battery_consecutive >= LOW_BATTERY_COUNT) {
+            knob_enter_deep_sleep();
+        }
+    } else {
+        low_battery_consecutive = 0;
+    }
+}
+
+void knob_enter_deep_sleep(void)
+{
+    // Turn off backlight
+    ledc_set_duty(BACKLIGHT_LEDC_MODE, BACKLIGHT_LEDC_CHANNEL, 0);
+    ledc_update_duty(BACKLIGHT_LEDC_MODE, BACKLIGHT_LEDC_CHANNEL);
+
+    // Configure 15s timer wakeup to re-check voltage
+    esp_sleep_enable_timer_wakeup(LOW_BATTERY_WAKE_US);
+    esp_deep_sleep_start();
 }
 
 int read_battery_percent(void)
@@ -143,6 +173,11 @@ bool in_undim_grace(void)
 static void auto_dim_timer_cb(lv_timer_t *timer)
 {
     (void)timer;
+
+    // Piggyback: poll battery and check low-voltage cutoff regardless of
+    // dim state.  update_battery_measurement() has its own 60s throttle.
+    update_battery_measurement(false);
+
     if (auto_dim_setting == AUTO_DIM_OFF || dimmed) return;
     uint32_t timeout = auto_dim_ms[auto_dim_setting];
     if (lv_tick_elaps(last_activity_tick) >= timeout) {

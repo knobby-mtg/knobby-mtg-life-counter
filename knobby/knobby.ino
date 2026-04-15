@@ -60,6 +60,24 @@ void setup()
   // Detect which board we're running on before any pin-dependent init
   board_detect();
 
+  // Early low-battery check: take 3 readings 50ms apart to confirm
+  // genuinely low voltage before sleeping.  Catches deep-sleep timer
+  // wakes and power-cycles after a safety shutdown, while a single
+  // noisy ADC reading on a healthy battery won't prevent boot.
+  {
+    int low_count = 0;
+    for (int i = 0; i < LOW_BATTERY_COUNT; i++) {
+      float v = knob_read_battery_voltage();
+      if (v > 0.0f && v <= LOW_BATTERY_VOLTAGE) {
+        low_count++;
+      }
+      if (i < LOW_BATTERY_COUNT - 1) delay(50);
+    }
+    if (low_count >= LOW_BATTERY_COUNT) {
+      knob_enter_deep_sleep();
+    }
+  }
+
   // Force backlight off immediately — the pin floats high between power-on
   // and LEDC init, briefly showing garbled LCD contents.
   pinMode(TFT_BLK, OUTPUT);
