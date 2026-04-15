@@ -51,9 +51,15 @@ else
     # Python — auto-detected as python3/python
     PYTHON    ?= python3
     
-    # Emscripten compiler — passed in from shell when available
-    ifneq ($(wildcard emsdk/upstream/emscripten/emcc),)
-        EMCC ?= ./emsdk/upstream/emscripten/emcc
+    # Emscripten compiler — passed in from shell when available, or auto-detected in repo
+    CONFIG_DIR := $(dir $(lastword $(MAKEFILE_LIST)))
+    ifneq ($(wildcard $(CONFIG_DIR)emsdk/upstream/emscripten/emcc),)
+        EMCC ?= $(CONFIG_DIR)emsdk/upstream/emscripten/emcc
+        # Use emsdk-bundled Python 3.10+ so macOS Xcode Python 3.9 is not picked up
+        EMSDK_PYTHON_CANDIDATES := $(wildcard $(CONFIG_DIR)emsdk/python/*/bin/python3)
+        ifneq ($(EMSDK_PYTHON_CANDIDATES),)
+            export EMSDK_PYTHON := $(lastword $(sort $(EMSDK_PYTHON_CANDIDATES)))
+        endif
     else
         EMCC ?= emcc
     endif

@@ -8,6 +8,8 @@
  * Modified by planevina 2025-01-20
  */
 
+#ifndef SIMULATOR  /* whole file is ESP32 hardware — excluded from sim/web builds */
+
 #include <stdio.h>
 #include "driver/gpio.h"
 #include "esp_attr.h"
@@ -292,3 +294,5 @@ uint8_t knob_gpio_get_key_level(void *gpio_num)
 {
     return (uint8_t)gpio_get_level((uint32_t)gpio_num);
 }
+
+#endif /* SIMULATOR */

@@ -1,3 +1,5 @@
+#ifndef SIMULATOR  /* whole file is ESP32 hardware — excluded from sim/web builds */
+
 #include "board_detect.h"
 #include "driver/i2c.h"
 #include "driver/gpio.h"
@@ -110,3 +112,5 @@ void board_detect(void)
     printf("No board detected, defaulting to %s\n", candidates[0]->name);
     board = candidates[0];
 }
+
+#endif /* SIMULATOR */

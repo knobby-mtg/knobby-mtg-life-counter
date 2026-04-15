@@ -59,11 +59,23 @@ if [ -z "$MAKE" ]; then
     fi
 fi
 
-# ── emcc (optional, only for WASM build) ─────────────────────────────────────
+# ── emcc (optional, only for WASM build) ─────────────────────────────────────────────
 if [ -z "$EMCC" ]; then
     if command -v emcc >/dev/null 2>&1; then
         EMCC=emcc
+    elif [ -x "$SCRIPT_DIR/emsdk/upstream/emscripten/emcc" ]; then
+        EMCC="$SCRIPT_DIR/emsdk/upstream/emscripten/emcc"
     fi
+fi
+
+# If using the local emsdk, also set EMSDK_PYTHON to avoid macOS Xcode Python 3.9
+if [ -z "$EMSDK_PYTHON" ] && [ -d "$SCRIPT_DIR/emsdk/python" ]; then
+    _PYBIN=$(ls "$SCRIPT_DIR/emsdk/python/"|sort|tail -1)
+    _PYCANDIDATE="$SCRIPT_DIR/emsdk/python/$_PYBIN/bin/python3"
+    if [ -x "$_PYCANDIDATE" ]; then
+        EMSDK_PYTHON="$_PYCANDIDATE"
+    fi
+    unset _PYBIN _PYCANDIDATE
 fi
 
 # ── User overrides ────────────────────────────────────────────────────────────
@@ -75,11 +87,12 @@ fi
 
 if [ "$VERBOSE" = "1" ]; then
     echo "[DEBUG] Detected Configuration:"
-    echo "  - LVGL_PATH: $LVGL_PATH"
-    echo "  - PYTHON:    $PYTHON"
-    echo "  - CC:        $CC"
-    echo "  - MAKE:      $MAKE"
-    echo "  - EMCC:      ${EMCC:-Not Found}"
+    echo "  - LVGL_PATH:   $LVGL_PATH"
+    echo "  - PYTHON:      $PYTHON"
+    echo "  - CC:          $CC"
+    echo "  - MAKE:        $MAKE"
+    echo "  - EMCC:        ${EMCC:-Not Found}"
+    echo "  - EMSDK_PYTHON:${EMSDK_PYTHON:-Not Found}"
 fi
 
-export LVGL_PATH PYTHON CC MAKE EMCC
+export LVGL_PATH PYTHON CC MAKE EMCC EMSDK_PYTHON

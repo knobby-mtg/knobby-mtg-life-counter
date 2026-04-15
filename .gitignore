@@ -73,6 +73,8 @@ sim/knobby_sim_gui.exe
 sim/screenshots/
 sim/web_sources.txt
 sim/gen_web_sources.py
+sim/knobby_web.wasm
+
 
 # Machine-specific config (use config.local.sh.example as template)
 config.local.sh

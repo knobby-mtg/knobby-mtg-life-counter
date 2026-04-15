@@ -146,6 +146,7 @@ void knob_gui(void)
     build_intro_screen();
     lv_scr_load(screen_intro);
     lv_refr_now(NULL);
+    scr_display_on();
     brightness_apply();
     build_dice_screen();
     build_main_screen();

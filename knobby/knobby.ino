@@ -78,6 +78,11 @@ void setup()
     }
   }
 
+  // Force backlight off immediately — the pin floats high between power-on
+  // and LEDC init, briefly showing garbled LCD contents.
+  pinMode(TFT_BLK, OUTPUT);
+  digitalWrite(TFT_BLK, LOW);
+
   // Use the configured active CPU frequency for easier tuning.
   setCpuFrequencyMhz(CPU_FREQ_ACTIVE);
 
