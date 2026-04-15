@@ -173,6 +173,11 @@ bool in_undim_grace(void)
 static void auto_dim_timer_cb(lv_timer_t *timer)
 {
     (void)timer;
+
+    // Piggyback: poll battery and check low-voltage cutoff regardless of
+    // dim state.  update_battery_measurement() has its own 60s throttle.
+    update_battery_measurement(false);
+
     if (auto_dim_setting == AUTO_DIM_OFF || dimmed) return;
     uint32_t timeout = auto_dim_ms[auto_dim_setting];
     if (lv_tick_elaps(last_activity_tick) >= timeout) {
