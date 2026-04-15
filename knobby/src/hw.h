@@ -1,6 +1,10 @@
 #ifndef _HW_H
 #define _HW_H
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include "types.h"
 
 // ---------- state ----------
@@ -21,6 +25,9 @@ extern int battery_percent;
 #define BATTERY_SAMPLE_INTERVAL_MS  60000   /* ms between passive battery measurements */
 // Auto-dim check period: how often the inactivity timer fires.
 #define AUTO_DIM_CHECK_PERIOD_MS    1000    /* ms */
+#define LOW_BATTERY_VOLTAGE         3.35f   /* shutdown threshold (matches 0% curve) */
+#define LOW_BATTERY_COUNT           3       /* consecutive low readings before cutoff */
+#define LOW_BATTERY_WAKE_US         (15ULL * 1000000ULL)  /* deep sleep wake interval */
 
 // ---------- functions ----------
 void knob_hw_init(void);
@@ -29,5 +36,10 @@ void update_battery_measurement(bool force);
 int read_battery_percent(void);
 void change_brightness(int delta);
 bool in_undim_grace(void);
+void knob_enter_deep_sleep(void);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif // _HW_H
