@@ -32,7 +32,7 @@ void refresh_game_mode_menu_ui(void)
     snprintf(buf, sizeof(buf), "Players\n%d", temp_num_players);
     lv_label_set_text(label_gm_num_players, buf);
 
-    max_track = temp_num_players < 4 ? temp_num_players : 4;
+    max_track = temp_num_players < MAX_DISPLAY_PLAYERS ? temp_num_players : MAX_DISPLAY_PLAYERS;
     if (temp_players_to_track > max_track) temp_players_to_track = max_track;
     snprintf(buf, sizeof(buf), "Track\n%d", temp_players_to_track);
     lv_label_set_text(label_gm_players_to_track, buf);
@@ -74,9 +74,9 @@ static void event_gm_num_players(lv_event_t *e)
     (void)e;
 
     temp_num_players++;
-    if (temp_num_players > MAX_PLAYERS) temp_num_players = 1;
+    if (temp_num_players > MAX_GAME_PLAYERS) temp_num_players = 1;
 
-    max_track = temp_num_players < 4 ? temp_num_players : 4;
+    max_track = temp_num_players < MAX_DISPLAY_PLAYERS ? temp_num_players : MAX_DISPLAY_PLAYERS;
     if (temp_players_to_track > max_track) temp_players_to_track = max_track;
 
     refresh_game_mode_menu_ui();
@@ -87,7 +87,7 @@ static void event_gm_players_to_track(lv_event_t *e)
     int max_track;
     (void)e;
 
-    max_track = temp_num_players < 4 ? temp_num_players : 4;
+    max_track = temp_num_players < MAX_DISPLAY_PLAYERS ? temp_num_players : MAX_DISPLAY_PLAYERS;
     temp_players_to_track++;
     if (temp_players_to_track > max_track) temp_players_to_track = 1;
 

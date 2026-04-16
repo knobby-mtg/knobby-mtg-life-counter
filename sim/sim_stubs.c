@@ -225,6 +225,10 @@ float sim_battery_voltage = 4.0f;
 
 float knob_read_battery_voltage(void) { return sim_battery_voltage; }
 
+/* ---- Display ---- */
+
+void scr_display_on(void) { /* no-op in simulator */ }
+
 /* ---- Random ---- */
 
 uint32_t esp_random(void) { return (uint32_t)rand(); }

@@ -1,3 +1,5 @@
+#ifndef SIMULATOR  /* whole file is ESP32 hardware — excluded from sim/web builds */
+
 #include "board_detect.h"
 #include "driver/i2c.h"
 #include "driver/gpio.h"
@@ -34,7 +36,7 @@ const board_pins_t board_k718 = {
     .tft_blk    = 21,  .tft_rst  = 17,  .tft_cs  = 12,  .tft_sck = 11,
     .tft_sda0   = 13,  .tft_sda1 = 14,  .tft_sda2 = 15, .tft_sda3 = 16,
     .touch_scl  = 10,  .touch_sda = 9,  .touch_int = 7,  .touch_rst = 8,
-    .enc_a      = 2,   .enc_b    = 1,
+    .enc_a      = 1,   .enc_b    = 2,
     .bat_adc    = 6,
     .btn        = 0,
     .mirror_x   = true,  .mirror_y = true,
@@ -110,3 +112,5 @@ void board_detect(void)
     printf("No board detected, defaulting to %s\n", candidates[0]->name);
     board = candidates[0];
 }
+
+#endif /* SIMULATOR */

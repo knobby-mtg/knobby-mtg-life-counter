@@ -84,7 +84,7 @@ static void create_counter_row(lv_obj_t *parent, counter_type_t type,
 
     *value_out = lv_label_create(row);
     lv_label_set_text(*value_out, "0");
-    lv_obj_set_style_text_color(*value_out, lv_color_white(), 0);
+    lv_obj_set_style_text_color(*value_out, get_player_text_color(player_index), 0);
     lv_obj_set_style_text_font(*value_out, &lv_font_montserrat_14, 0);
     lv_obj_align(*value_out, LV_ALIGN_BOTTOM_MID, 0, 0);
     lv_obj_set_style_text_align(*value_out, LV_TEXT_ALIGN_CENTER, 0);

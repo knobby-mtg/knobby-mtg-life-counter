@@ -20,6 +20,7 @@ void knob_notify_swipe_down(void);
 void knob_notify_swipe_left(void);
 void knob_notify_swipe_right(void);
 float knob_read_battery_voltage(void);
+void scr_display_on(void);
 
 
 #ifdef __cplusplus

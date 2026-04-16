@@ -20,21 +20,23 @@ enemy_state_t enemies[MAX_ENEMY_COUNT] = {
 int selected_enemy = -1;
 int dice_result = 0;
 
-int player_life[MAX_PLAYERS] = {40, 40, 40, 40};
+int player_life[MAX_DISPLAY_PLAYERS] = {40, 40, 40, 40};
 int selected_player = -1;
-char player_names[MAX_PLAYERS][16] = {"P1", "P2", "P3", "P4"};
+char player_names[MAX_GAME_PLAYERS][16] = {
+    "P1", "P2", "P3", "P4", "P5", "P6", "P7", "P8"
+};
 int menu_player = 0;
-int cmd_damage_totals[MAX_PLAYERS][MAX_PLAYERS] = {{0}};
+int cmd_damage_totals[MAX_GAME_PLAYERS][MAX_DISPLAY_PLAYERS] = {{0}};
 int all_damage_value = 0;
 int cmd_damage_target = -1;
 static int damage_start_value = 0;
 int pending_life_delta = 0;
 int preview_player = -1;
 bool life_preview_active = false;
-int player_counters[MAX_PLAYERS][COUNTER_TYPE_COUNT] = {{0}};
+int player_counters[MAX_DISPLAY_PLAYERS][COUNTER_TYPE_COUNT] = {{0}};
 counter_type_t counter_edit_type = COUNTER_TYPE_COMMANDER_TAX;
 int counter_edit_value = 0;
-bool player_eliminated[MAX_PLAYERS] = {false};
+bool player_eliminated[MAX_DISPLAY_PLAYERS] = {false};
 
 typedef struct {
     bool valid;
@@ -43,7 +45,7 @@ typedef struct {
     int delta;
 } elimination_action_t;
 
-static elimination_action_t elimination_action[MAX_PLAYERS] = {{0}};
+static elimination_action_t elimination_action[MAX_DISPLAY_PLAYERS] = {{0}};
 
 
 
@@ -63,13 +65,13 @@ static const counter_definition_t counter_definitions[COUNTER_TYPE_COUNT] = {
 
 static void clear_player_elimination_action(int player)
 {
-    if (player < 0 || player >= MAX_PLAYERS) return;
+    if (player < 0 || player >= MAX_DISPLAY_PLAYERS) return;
     elimination_action[player].valid = false;
 }
 
 static void set_player_elimination_action(int player, uint8_t event_type, int source, int delta)
 {
-    if (player < 0 || player >= MAX_PLAYERS) return;
+    if (player < 0 || player >= MAX_DISPLAY_PLAYERS) return;
     elimination_action[player].valid = true;
     elimination_action[player].event_type = event_type;
     elimination_action[player].source = source;
@@ -78,7 +80,7 @@ static void set_player_elimination_action(int player, uint8_t event_type, int so
 
 bool elimination_action_available(int player)
 {
-    if (player < 0 || player >= MAX_PLAYERS) return false;
+    if (player < 0 || player >= MAX_DISPLAY_PLAYERS) return false;
     return elimination_action[player].valid;
 }
 
@@ -101,7 +103,7 @@ void undo_elimination_action(int player)
 
 void check_player_elimination(int player)
 {
-    if (player < 0 || player >= MAX_PLAYERS) return;
+    if (player < 0 || player >= MAX_DISPLAY_PLAYERS) return;
     bool was_eliminated = player_eliminated[player];
     bool now_eliminated = false;
 
@@ -109,7 +111,7 @@ void check_player_elimination(int player)
         if (player_life[player] <= 0) {
             now_eliminated = true;
         } else {
-            for (int i = 0; i < MAX_PLAYERS; i++) {
+            for (int i = 0; i < MAX_GAME_PLAYERS; i++) {
                 if (i != player && cmd_damage_totals[i][player] >= 20) {
                     now_eliminated = true;
                     break;
@@ -133,7 +135,7 @@ void check_player_elimination(int player)
 
 void manual_eliminate_player(int player)
 {
-    if (player < 0 || player >= MAX_PLAYERS) return;
+    if (player < 0 || player >= MAX_DISPLAY_PLAYERS) return;
     if (player_eliminated[player]) return;
     player_eliminated[player] = true;
     clear_player_elimination_action(player);
@@ -142,7 +144,7 @@ void manual_eliminate_player(int player)
 
 void manual_uneliminate_player(int player)
 {
-    if (player < 0 || player >= MAX_PLAYERS) return;
+    if (player < 0 || player >= MAX_DISPLAY_PLAYERS) return;
     if (!player_eliminated[player]) return;
     player_eliminated[player] = false;
     clear_player_elimination_action(player);
@@ -150,12 +152,16 @@ void manual_uneliminate_player(int player)
 }
 
 // ---------- player colors ----------
-static const uint32_t player_color_table[MAX_PLAYERS][LIFE_VIB_COUNT] = {
+static const uint32_t player_color_table[MAX_GAME_PLAYERS][LIFE_VIB_COUNT] = {
     /*  dim        mid        vivid  */
     {0x024D3A, 0x06D6A0, 0x66FFD9},  /* P1 green  (bottom-left) */
     {0x2A0A4D, 0x7B1FE0, 0x9C4DFF},  /* P2 purple (top-left)    */
     {0x0A3A4D, 0x29B6F6, 0x4FC3F7},  /* P3 blue   (top-right)   */
     {0x4D4400, 0xFFD600, 0xFFEA61},  /* P4 yellow (bottom-right) */
+    {0x4D1C1C, 0xF44336, 0xFF5252},  /* P5 red    */
+    {0x4D3300, 0xFF9800, 0xFFB74D},  /* P6 orange */
+    {0x004D4D, 0x00BCD4, 0x4DD0E1},  /* P7 cyan   */
+    {0x3D0A4D, 0xE040FB, 0xEA80FC},  /* P8 pink   */
 };
 
 // ---------- custom color palette (18 colors) ----------
@@ -190,13 +196,13 @@ static const char *custom_color_names[CUSTOM_COLOR_COUNT] = {
 };
 
 // ---------- per-player color state (runtime only, lost on reboot) ----------
-int player_color_index[MAX_PLAYERS] = {0, 1, 2, 3};
-bool player_life_color[MAX_PLAYERS] = {false, false, false, false};
-bool player_has_override[MAX_PLAYERS] = {false, false, false, false};
+int player_color_index[MAX_DISPLAY_PLAYERS] = {0, 1, 2, 3};
+bool player_life_color[MAX_DISPLAY_PLAYERS] = {false, false, false, false};
+bool player_has_override[MAX_DISPLAY_PLAYERS] = {false, false, false, false};
 
 lv_color_t get_player_color_vib(int index, int vibrancy)
 {
-    if (index < 0 || index >= MAX_PLAYERS) return lv_color_hex(0x303030);
+    if (index < 0 || index >= MAX_GAME_PLAYERS) return lv_color_hex(0x303030);
     if (vibrancy < 0 || vibrancy >= LIFE_VIB_COUNT) vibrancy = LIFE_VIB_MID;
     return lv_color_hex(player_color_table[index][vibrancy]);
 }
@@ -213,7 +219,8 @@ lv_color_t get_player_active_color(int index)
 
 lv_color_t get_player_text_color(int index)
 {
-    return (index == 3) ? lv_color_black() : lv_color_white();
+    lv_color_t bg = get_player_base_color(index);
+    return color_is_light(bg) ? lv_color_black() : lv_color_white();
 }
 
 lv_color_t get_player_preview_color(int index, int delta)
@@ -324,7 +331,7 @@ bool counter_type_is_enabled(counter_type_t type)
 
 int get_counter_value(int player, counter_type_t type)
 {
-    if (player < 0 || player >= MAX_PLAYERS) return 0;
+    if (player < 0 || player >= MAX_DISPLAY_PLAYERS) return 0;
     if (type < 0 || type >= COUNTER_TYPE_COUNT) return 0;
 
     return player_counters[player][type];
@@ -332,7 +339,7 @@ int get_counter_value(int player, counter_type_t type)
 
 void begin_counter_edit(int player, counter_type_t type)
 {
-    if (player < 0 || player >= MAX_PLAYERS) return;
+    if (player < 0 || player >= MAX_DISPLAY_PLAYERS) return;
     if (type < 0 || type >= COUNTER_TYPE_COUNT) return;
 
     menu_player = player;
@@ -351,7 +358,7 @@ int apply_counter_edit(void)
     int old_value;
     int change_delta;
 
-    if (player < 0 || player >= MAX_PLAYERS) return 0;
+    if (player < 0 || player >= MAX_DISPLAY_PLAYERS) return 0;
     if (counter_edit_type < 0 || counter_edit_type >= COUNTER_TYPE_COUNT) return 0;
 
     old_value = player_counters[player][counter_edit_type];
@@ -512,7 +519,7 @@ void change_all_damage(int delta)
 // ---------- undo ----------
 void undo_life_change(int player, int delta)
 {
-    if (player < 0 || player >= MAX_PLAYERS) return;
+    if (player < 0 || player >= MAX_DISPLAY_PLAYERS) return;
 
     player_life[player] = clamp_life(player_life[player] - delta);
     check_player_elimination(player);
@@ -522,8 +529,8 @@ void undo_life_change(int player, int delta)
 
 void undo_cmd_damage(int source, int target, int delta)
 {
-    if (source < 0 || source >= MAX_PLAYERS) return;
-    if (target < 0 || target >= MAX_PLAYERS) return;
+    if (source < 0 || source >= MAX_GAME_PLAYERS) return;
+    if (target < 0 || target >= MAX_DISPLAY_PLAYERS) return;
     cmd_damage_totals[source][target] += delta;
     if (cmd_damage_totals[source][target] < 0)
         cmd_damage_totals[source][target] = 0;
@@ -533,7 +540,7 @@ void undo_cmd_damage(int source, int target, int delta)
 void undo_counter_change(int player, int counter_type, int delta)
 {
     if (counter_type < 0 || counter_type >= COUNTER_TYPE_COUNT) return;
-    if (player < 0 || player >= MAX_PLAYERS) return;
+    if (player < 0 || player >= MAX_DISPLAY_PLAYERS) return;
 
     player_counters[player][counter_type] = clamp_counter(
         player_counters[player][counter_type] - delta
@@ -565,7 +572,7 @@ void knob_life_reset(void)
         enemies[i].damage = 0;
     }
 
-    for (i = 0; i < MAX_PLAYERS; i++) {
+    for (i = 0; i < MAX_DISPLAY_PLAYERS; i++) {
         player_life[i] = starting_life;
     }
     selected_player = -1;
@@ -594,7 +601,7 @@ void knob_life_init(void)
     if (active_enemy_count < 0) active_enemy_count = 0;
     if (active_enemy_count > MAX_ENEMY_COUNT) active_enemy_count = MAX_ENEMY_COUNT;
 
-    for (i = 0; i < MAX_PLAYERS; i++) {
+    for (i = 0; i < MAX_DISPLAY_PLAYERS; i++) {
         player_life[i] = starting_life;
     }
     memset(player_counters, 0, sizeof(player_counters));

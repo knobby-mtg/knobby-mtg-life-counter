@@ -45,15 +45,15 @@ void knob_nvs_init(void)
         nvs_get_i8(handle, "track", &pt_val);
         nvs_get_i16(handle, "life_total", &lt_val);
 
-        cached_auto_dim = (dim_val < 0) ? 0 : (dim_val >= AUTO_DIM_COUNT) ? 0 : dim_val;
-        cached_color_mode = lc_val;
+        cached_auto_dim = (dim_val < 0) ? AUTO_DIM_OFF : (dim_val >= AUTO_DIM_COUNT) ? AUTO_DIM_OFF : dim_val;
+        cached_color_mode = (lc_val < 0) ? COLOR_MODE_PLAYER : (lc_val >= COLOR_MODE_COUNT) ? COLOR_MODE_PLAYER : lc_val;
         cached_deselect_timeout = (dt_val < 0) ? 0 : (dt_val > 3) ? 3 : dt_val;
         cached_orientation = (rot_val < 0) ? ORIENTATION_MODE_ABSOLUTE
                 : (rot_val >= ORIENTATION_MODE_COUNT) ? ORIENTATION_MODE_ABSOLUTE
                                    : rot_val;
         cached_brightness = clamp_brightness(bri_val);
-        cached_num_players = (np_val < 1) ? 1 : (np_val > MAX_PLAYERS) ? MAX_PLAYERS : np_val;
-        cached_players_to_track = (pt_val < 1) ? 1 : (pt_val > 4) ? 4 : pt_val;
+        cached_num_players = (np_val < 1) ? 1 : (np_val > MAX_GAME_PLAYERS) ? MAX_GAME_PLAYERS : np_val;
+        cached_players_to_track = (pt_val < 1) ? 1 : (pt_val > MAX_DISPLAY_PLAYERS) ? MAX_DISPLAY_PLAYERS : pt_val;
         cached_life_total = (lt_val < 0) ? 0 : (lt_val > LIFE_MAX) ? LIFE_MAX : lt_val;
 
         int8_t ae_val = 1;
@@ -89,9 +89,7 @@ void nvs_set_brightness(int value)
 
 void nvs_set_auto_dim(int value)
 {
-    cached_auto_dim = (value < 0) ? AUTO_DIM_OFF
-                    : (value >= AUTO_DIM_COUNT) ? AUTO_DIM_OFF
-                    : value;
+    cached_auto_dim = (value < 0) ? AUTO_DIM_OFF : (value >= AUTO_DIM_COUNT) ? AUTO_DIM_OFF : value;
     settings_dirty = true;
 }
 
@@ -102,7 +100,7 @@ int nvs_get_color_mode(void)
 
 void nvs_set_color_mode(int value)
 {
-    cached_color_mode = value;
+    cached_color_mode = (value < 0) ? COLOR_MODE_PLAYER : (value >= COLOR_MODE_COUNT) ? COLOR_MODE_PLAYER : value;
     settings_dirty = true;
 }
 
@@ -138,7 +136,7 @@ int nvs_get_num_players(void)
 
 void nvs_set_num_players(int value)
 {
-    cached_num_players = (value < 1) ? 1 : (value > MAX_PLAYERS) ? MAX_PLAYERS : value;
+    cached_num_players = (value < 1) ? 1 : (value > MAX_GAME_PLAYERS) ? MAX_GAME_PLAYERS : value;
     settings_dirty = true;
 }
 
@@ -149,7 +147,7 @@ int nvs_get_players_to_track(void)
 
 void nvs_set_players_to_track(int value)
 {
-    cached_players_to_track = (value < 1) ? 1 : (value > 4) ? 4 : value;
+    cached_players_to_track = (value < 1) ? 1 : (value > MAX_DISPLAY_PLAYERS) ? MAX_DISPLAY_PLAYERS : value;
     settings_dirty = true;
 }
 

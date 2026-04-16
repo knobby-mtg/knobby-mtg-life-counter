@@ -116,7 +116,9 @@ static void format_log_line(damage_log_entry_t *entry, char *buf, size_t buf_sz)
 
     format_elapsed(elapsed_s, time_str, sizeof(time_str));
 
-    if (entry->event_type == LOG_EVT_CMD_DAMAGE && entry->source >= 0) {
+    if (entry->event_type == LOG_EVT_CMD_DAMAGE && entry->source >= 0 &&
+        entry->source < MAX_GAME_PLAYERS && entry->player >= 0 &&
+        entry->player < MAX_GAME_PLAYERS) {
         snprintf(buf, buf_sz, "%s: %s dealt %d cmd to %s",
                  time_str,
                  player_names[entry->source],
@@ -132,7 +134,7 @@ static void format_log_line(damage_log_entry_t *entry, char *buf, size_t buf_sz)
                  action,
                  counter_name,
                  abs_delta);
-    } else if (entry->player >= 0 && entry->player < MAX_PLAYERS) {
+    } else if (entry->player >= 0 && entry->player < MAX_GAME_PLAYERS) {
         const char *action = entry->delta > 0 ? "gained" : "lost";
         snprintf(buf, buf_sz, "%s: %s %s %d life",
                  time_str, player_names[entry->player], action, abs_delta);

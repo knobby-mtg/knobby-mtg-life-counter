@@ -24,21 +24,21 @@ typedef struct {
 extern int active_enemy_count;
 extern enemy_state_t enemies[MAX_ENEMY_COUNT];
 extern int selected_enemy;
-extern int player_life[MAX_PLAYERS];
+extern int player_life[MAX_DISPLAY_PLAYERS];
 extern int selected_player;
-extern char player_names[MAX_PLAYERS][16];
+extern char player_names[MAX_GAME_PLAYERS][16];
 extern int menu_player;
-extern int cmd_damage_totals[MAX_PLAYERS][MAX_PLAYERS];
+extern int cmd_damage_totals[MAX_GAME_PLAYERS][MAX_DISPLAY_PLAYERS];
 extern int cmd_damage_target;
 extern int all_damage_value;
 extern int pending_life_delta;
 extern int preview_player;
 extern bool life_preview_active;
 extern int dice_result;
-extern int player_counters[MAX_PLAYERS][COUNTER_TYPE_COUNT];
+extern int player_counters[MAX_DISPLAY_PLAYERS][COUNTER_TYPE_COUNT];
 extern counter_type_t counter_edit_type;
 extern int counter_edit_value;
-extern bool player_eliminated[MAX_PLAYERS];
+extern bool player_eliminated[MAX_DISPLAY_PLAYERS];
 
 // ---------- functions ----------
 void knob_life_init(void);
@@ -69,9 +69,9 @@ void manual_uneliminate_player(int player);
 void check_player_elimination(int player);
 
 // ---------- player colors ----------
-extern int player_color_index[MAX_PLAYERS];
-extern bool player_life_color[MAX_PLAYERS];
-extern bool player_has_override[MAX_PLAYERS];
+extern int player_color_index[MAX_DISPLAY_PLAYERS];
+extern bool player_life_color[MAX_DISPLAY_PLAYERS];
+extern bool player_has_override[MAX_DISPLAY_PLAYERS];
 
 lv_color_t get_player_color_vib(int index, int vibrancy);
 lv_color_t get_player_base_color(int index);

@@ -125,14 +125,14 @@ done
 # ============================================================
 # 6. Random counters — multiplayer × orientations + 1p
 # ============================================================
-shot "1p_counters.png" --screen 1p --random-counters
+shot "1p_counters.png" --screen 1p --random-counters --auto-eliminate 0
 for track in 2 3 4; do
     for orient in 0 1 2; do
         orient_name=("absolute" "centric" "tabletop")
         oname=${orient_name[$orient]}
         shot "${track}p_${oname}_counters.png" \
             --screen ${track}p --track "$track" --orientation "$orient" \
-            --random-counters
+            --random-counters --auto-eliminate 0
     done
 done
 
@@ -156,12 +156,33 @@ done
 # ============================================================
 # 9. Damage screen with non-zero damage
 # ============================================================
-shot "damage_nonzero.png" --screen damage --enemy-damage 7,3,12
+shot "damage_nonzero.png" --screen damage --names Maya,Leah,Kyle \
+    --enemy-damage 7,3,12
 
 # ============================================================
 # 10. Select screen with accumulated commander damage
 # ============================================================
-shot "select_with_damage.png" --screen select --enemy-damage 14,6,21
+# 1-7 enemies (2-8 players)
+shot "select_2p.png" --screen select --players 2 --track 1 \
+    --names Maya,Leah --enemy-damage 9
+shot "select_3p.png" --screen select --players 3 --track 1 \
+    --names Maya,Leah,Kyle --enemy-damage 14,6
+shot "select_4p.png" --screen select --players 4 --track 4 \
+    --names Maya,Leah,Kyle,Devin --enemy-damage 14,6,21
+shot "select_5p.png" --screen select --players 5 --track 4 \
+    --names Maya,Leah,Kyle,Devin,Riku --enemy-damage 3,0,8,0
+shot "select_6p.png" --screen select --players 6 --track 4 \
+    --names Maya,Leah,Kyle,Devin,Riku,Sarah --enemy-damage 5,0,12,0,3
+shot "select_7p.png" --screen select --players 7 --track 4 \
+    --names Maya,Leah,Kyle,Devin,Riku,Sarah,Nolan \
+    --enemy-damage 5,0,12,0,3,0
+shot "select_8p.png" --screen select --players 8 --track 4 \
+    --names Maya,Leah,Kyle,Devin,Riku,Sarah,Nolan,Tomoko \
+    --enemy-damage 5,0,12,0,3,0,7
+# select screen with an eliminated player (Kyle at 0 life)
+shot "select_eliminated.png" --screen select --players 5 --track 4 \
+    --names Maya,Leah,Kyle,Devin,Riku --enemy-damage 3,0,21,0 \
+    --life 40,40,0,40 --auto-eliminate 1
 
 # ============================================================
 # 11. Custom-life with non-default value
@@ -173,6 +194,7 @@ shot "custom_life_123.png" --screen custom-life --starting-life 123
 # ============================================================
 shot "game_mode_2p_20.png" --screen game-mode --players 2 --track 2 --starting-life 20
 shot "game_mode_3p_30.png" --screen game-mode --players 3 --track 3 --starting-life 30
+shot "game_mode_8p_t4.png" --screen game-mode --players 8 --track 4 --starting-life 40
 
 # ============================================================
 # 13. Per-player color mode

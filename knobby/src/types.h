@@ -7,8 +7,9 @@
 #include <string.h>
 
 // ---------- constants ----------
-#define MAX_ENEMY_COUNT 3
-#define MAX_PLAYERS 4
+#define MAX_GAME_PLAYERS 8
+#define MAX_DISPLAY_PLAYERS 4
+#define MAX_ENEMY_COUNT (MAX_GAME_PLAYERS - 1)
 #define LIFE_MIN -999
 #define LIFE_MAX 999
 #define COUNTER_MIN 0

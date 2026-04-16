@@ -184,52 +184,81 @@ void refresh_player_ui(void)
         refresh_multiplayer_ui();
 }
 
-void refresh_select_ui(void)
+/* grid constants for select screen */
+#define SEL_BOX_W      100
+#define SEL_BOX_H       56
+#define SEL_BOX_GAP_X    6
+#define SEL_BOX_GAP_Y    6
+#define SEL_GRID_COLS    2
+
+static bool is_enemy_eliminated(int player_index)
+{
+    return (player_index >= 0 && player_index < MAX_DISPLAY_PLAYERS &&
+            player_eliminated[player_index]);
+}
+
+static void style_select_entry(int i, int player_index)
 {
     char buf[32];
+    lv_color_t text_color = get_player_text_color(player_index);
+    bool eliminated = is_enemy_eliminated(player_index);
+
+    lv_label_set_text(label_enemy_name[i], player_names[player_index]);
+    snprintf(buf, sizeof(buf), "%d", enemies[i].damage);
+    lv_label_set_text(label_enemy_damage[i], buf);
+
+    if (eliminated) {
+        lv_color_t disabled_bg = lv_color_hex(0x404040);
+        lv_color_t disabled_text = lv_color_hex(0x808080);
+        lv_obj_set_style_text_color(label_enemy_name[i], disabled_text, 0);
+        lv_obj_set_style_text_color(label_enemy_damage[i], disabled_text, 0);
+        lv_obj_set_style_bg_color(select_rows[i], disabled_bg, 0);
+        lv_obj_set_style_bg_opa(select_rows[i], LV_OPA_COVER, 0);
+        lv_obj_clear_flag(select_rows[i], LV_OBJ_FLAG_CLICKABLE);
+    } else {
+        lv_obj_set_style_text_color(label_enemy_name[i], text_color, 0);
+        lv_obj_set_style_text_color(label_enemy_damage[i], text_color, 0);
+        lv_obj_set_style_bg_color(select_rows[i], get_player_base_color(player_index), 0);
+        lv_obj_set_style_bg_opa(select_rows[i], LV_OPA_COVER, 0);
+        lv_obj_clear_flag(select_rows[i], LV_OBJ_FLAG_CLICKABLE);
+        lv_obj_add_flag(select_rows[i], LV_OBJ_FLAG_CLICKABLE);
+    }
+
+    lv_obj_set_style_text_font(label_enemy_name[i], &lv_font_montserrat_16, 0);
+    lv_obj_set_style_text_font(label_enemy_damage[i], &lv_font_montserrat_22, 0);
+    lv_obj_align(label_enemy_name[i], LV_ALIGN_TOP_MID, 0, 4);
+    lv_obj_align(label_enemy_damage[i], LV_ALIGN_BOTTOM_MID, 0, -4);
+}
+
+void refresh_select_ui(void)
+{
     int i;
     int n = active_enemy_count;
-    int row_h = 46;
-    int gap = 10;
-    int total_h;
-    int start_y;
-
-    if (n > 5) { row_h = 38; gap = 6; }
-    total_h = n * row_h + (n > 0 ? (n - 1) * gap : 0);
-    start_y = (260 - total_h) / 2;
+    int cols = (n <= 1) ? 1 : SEL_GRID_COLS;
+    int rows_needed = (n + cols - 1) / cols;
+    int grid_w = cols * SEL_BOX_W + (cols - 1) * SEL_BOX_GAP_X;
+    int grid_h = rows_needed * SEL_BOX_H + (rows_needed - 1) * SEL_BOX_GAP_Y;
+    int grid_x = (240 - grid_w) / 2;
+    int grid_y = (260 - grid_h) / 2;
 
     for (i = 0; i < MAX_ENEMY_COUNT; i++) {
         if (select_rows[i] == NULL) continue;
 
         if (i < n) {
+            int col = i % cols;
+            int row = i / cols;
+            int items_in_row = (row < n / cols) ? cols : (n % cols);
+            if (items_in_row == 0) items_in_row = cols;
+            int row_offset = (cols > 1 && items_in_row == 1) ? (SEL_BOX_W + SEL_BOX_GAP_X) / 2 : 0;
+            int x = grid_x + col * (SEL_BOX_W + SEL_BOX_GAP_X) + row_offset;
+            int y = grid_y + row * (SEL_BOX_H + SEL_BOX_GAP_Y);
             int player_index = get_cmd_target_player_index(i);
-            lv_color_t text_color = get_player_text_color(player_index);
 
             lv_obj_clear_flag(select_rows[i], LV_OBJ_FLAG_HIDDEN);
-            lv_obj_set_size(select_rows[i], 220, row_h);
-            lv_obj_set_pos(select_rows[i], 0, start_y + i * (row_h + gap));
-
-            lv_label_set_text(label_enemy_name[i], player_names[player_index]);
-            snprintf(buf, sizeof(buf), "%d", enemies[i].damage);
-            lv_label_set_text(label_enemy_damage[i], buf);
-
-            if (player_eliminated[player_index]) {
-                lv_color_t disabled_bg = lv_color_hex(0x404040);
-                lv_color_t disabled_text = lv_color_hex(0x808080);
-                lv_obj_set_style_text_color(label_enemy_name[i], disabled_text, 0);
-                lv_obj_set_style_text_color(label_enemy_damage[i], disabled_text, 0);
-                lv_obj_set_style_bg_color(select_rows[i], disabled_bg, 0);
-                lv_obj_set_style_bg_opa(select_rows[i], LV_OPA_COVER, 0);
-                lv_obj_clear_flag(select_rows[i], LV_OBJ_FLAG_CLICKABLE);
-            } else {
-                lv_obj_set_style_text_color(label_enemy_name[i], text_color, 0);
-                lv_obj_set_style_text_color(label_enemy_damage[i], text_color, 0);
-                lv_obj_set_style_bg_color(select_rows[i], get_player_base_color(player_index), 0);
-                lv_obj_set_style_bg_opa(select_rows[i], LV_OPA_COVER, 0);
-                lv_obj_clear_flag(select_rows[i], LV_OBJ_FLAG_HIDDEN);
-                lv_obj_clear_flag(select_rows[i], LV_OBJ_FLAG_CLICKABLE);
-                lv_obj_add_flag(select_rows[i], LV_OBJ_FLAG_CLICKABLE);
-            }
+            lv_obj_set_size(select_rows[i], SEL_BOX_W, SEL_BOX_H);
+            lv_obj_set_pos(select_rows[i], x, y);
+            lv_obj_set_style_radius(select_rows[i], 8, 0);
+            style_select_entry(i, player_index);
         } else {
             lv_obj_add_flag(select_rows[i], LV_OBJ_FLAG_HIDDEN);
         }
@@ -300,7 +329,7 @@ static void event_select_enemy(lv_event_t *e)
 {
     int index = (int)(intptr_t)lv_event_get_user_data(e);
     int player_index = get_cmd_target_player_index(index);
-    if (player_index >= 0 && player_index < MAX_PLAYERS && player_eliminated[player_index]) {
+    if (player_index >= 0 && player_index < MAX_DISPLAY_PLAYERS && player_eliminated[player_index]) {
         return;
     }
     open_damage_screen(index);
