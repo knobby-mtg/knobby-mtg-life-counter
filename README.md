@@ -28,6 +28,8 @@ Go to https://knobby-mtg.github.io/knobby-mtg-life-counter/ to install the lates
 
 Swipe inward from any edge on a player screen to open the menu, and swipe down or in from the right edge to close a menu or go back.
 
+For how-to guides and additional documentation, see the [wiki](https://github.com/knobby-mtg/knobby-mtg-life-counter/wiki).
+
 ## ⚙️ Hardware
 
 This is the hardware used: JC3636K518 with battery, you can find it on AliExpress.
