@@ -41,11 +41,14 @@ static lv_timer_t *status_refresh_timer = NULL;
 /* ---------- forward decls ---------- */
 static void rebuild_wireless_menu(void);
 
-/* Pending mode: staged by the Mode quadrant; committed when the user
- * navigates into a sub-screen or backs out of the wireless menu. Avoids
- * thrashing the radio while the user is still cycling through choices. */
+/* Pending mode: staged by the Mode quadrant. Committed when
+ *   - the user opens a sub-screen (Network Config / Status), or
+ *   - the dwell timer fires COMMIT_DWELL_MS after the last tap.
+ * Back-nav cancels instead of committing, so the user has an escape hatch. */
+#define COMMIT_DWELL_MS 2000
 static wireless_mode_t pending_mode = WIRELESS_MODE_DISABLED;
 static bool pending_initialized = false;
+static lv_timer_t *commit_dwell_timer = NULL;
 
 /* ---------- helpers ---------- */
 static const char *state_label(wireless_state_t s)
@@ -120,11 +123,44 @@ static lv_obj_t *make_list_row(lv_obj_t *parent, const char *primary, const char
  *  WIRELESS MENU (quad)
  * ============================================================ */
 
+static void cancel_commit_dwell(void)
+{
+    if (commit_dwell_timer) lv_timer_pause(commit_dwell_timer);
+}
+
 void commit_pending_wireless_mode(void)
 {
+    cancel_commit_dwell();
     if (!pending_initialized) return;
     if (pending_mode != wireless_current_mode())
         wireless_set_mode(pending_mode);
+}
+
+void cancel_pending_wireless_mode(void)
+{
+    cancel_commit_dwell();
+    pending_mode = wireless_current_mode();
+}
+
+static void commit_dwell_cb(lv_timer_t *t)
+{
+    (void)t;
+    commit_pending_wireless_mode();
+    /* Refresh the menu so the " *" indicator disappears. */
+    if (lv_scr_act() == screen_wireless_menu)
+        rebuild_wireless_menu();
+}
+
+static void schedule_commit_dwell(void)
+{
+    if (commit_dwell_timer == NULL) {
+        commit_dwell_timer = lv_timer_create(commit_dwell_cb, COMMIT_DWELL_MS, NULL);
+        lv_timer_set_repeat_count(commit_dwell_timer, 1);
+    } else {
+        lv_timer_reset(commit_dwell_timer);
+        lv_timer_set_repeat_count(commit_dwell_timer, 1);
+        lv_timer_resume(commit_dwell_timer);
+    }
 }
 
 static void event_wireless_mode_cycle(lv_event_t *e)
@@ -138,6 +174,12 @@ static void event_wireless_mode_cycle(lv_event_t *e)
             break;
         }
     }
+    /* Either arm or reset the dwell timer. If the user stops tapping for
+     * COMMIT_DWELL_MS the selection commits automatically. */
+    if (pending_mode != wireless_current_mode())
+        schedule_commit_dwell();
+    else
+        cancel_commit_dwell();
     rebuild_wireless_menu();
 }
 

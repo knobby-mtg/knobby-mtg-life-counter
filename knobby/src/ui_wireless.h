@@ -23,10 +23,14 @@ void open_wireless_status_screen(void);
 
 void refresh_wireless_status_ui(void);
 
-/* Apply a mode change that was staged via the Mode quadrant.
- * Called from sub-screen openers and back-nav so the radio doesn't flip
- * on every tap while the user is still cycling through modes. */
+/* Mode-change commit/cancel:
+ *   commit — apply the staged mode to the radio. Called from sub-screen
+ *            openers and from the dwell timer after the user stops tapping.
+ *   cancel — discard the staged mode. Called from back-nav so the user
+ *            can escape without applying an in-progress rotation.
+ */
 void commit_pending_wireless_mode(void);
+void cancel_pending_wireless_mode(void);
 
 #ifdef __cplusplus
 }

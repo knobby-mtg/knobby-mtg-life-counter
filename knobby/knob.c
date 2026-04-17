@@ -80,7 +80,8 @@ static void handle_back_navigation(lv_obj_t *screen)
     } else if (screen == screen_settings_page3) {
         lv_scr_load(screen_settings_page2);
     } else if (screen == screen_wireless_menu) {
-        commit_pending_wireless_mode();
+        /* Back = cancel: discard any staged mode change instead of committing. */
+        cancel_pending_wireless_mode();
         lv_scr_load(screen_settings_page3);
     } else if (screen == screen_wifi_networks) {
         open_wireless_menu_screen();
