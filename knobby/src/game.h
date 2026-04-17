@@ -60,6 +60,7 @@ int apply_counter_edit(void);
 int get_counter_value(int player, counter_type_t type);
 const counter_definition_t *get_counter_definition(counter_type_t type);
 bool counter_type_is_enabled(counter_type_t type);
+void start_player_selection_animation(void);
 
 bool elimination_action_available(int player);
 void undo_elimination_action(int player);

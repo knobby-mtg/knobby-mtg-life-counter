@@ -136,6 +136,8 @@ void reset_all_values(void)
     refresh_all_damage_ui();
     refresh_counter_edit_ui();
     mana_clear_all();
+
+    start_player_selection_animation();
 }
 
 void knob_cb(lv_event_t *e)
