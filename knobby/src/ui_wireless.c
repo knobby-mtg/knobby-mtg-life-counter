@@ -166,7 +166,7 @@ static void rebuild_wireless_menu(void)
     if (is_currently_active)
         lv_scr_load(screen_wireless_menu);
     if (old)
-        lv_obj_del(old);
+        lv_obj_del_async(old);   /* defer so we don't free the screen we were just dispatching on */
 }
 
 void open_wireless_menu_screen(void)

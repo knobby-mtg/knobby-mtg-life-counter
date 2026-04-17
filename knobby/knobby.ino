@@ -10,6 +10,7 @@
 #include "hal/lv_hal.h"
 #include "knob.h"
 #include "src/hw.h"
+#include "src/wireless_manager.h"
 
 static const float BATTERY_DIVIDER_RATIO = 2.0f;
 static const float BATTERY_CALIBRATION_SCALE = 1.0f;
@@ -131,7 +132,13 @@ void loop()
   knob_process_pending();
   time_till_next = lv_timer_handler();
 
-  if (time_till_next >= ACTIVE_SLEEP_MIN_MS && !usb_host_active()) {
+  // Skip light sleep while the radio is active — esp_light_sleep_start()
+  // stops the WiFi/BT modem tasks, which kills connection attempts and
+  // can crash the driver mid-handshake. Proper WiFi modem-sleep
+  // coordination can be added later; for now, stay awake when radio is on.
+  bool radio_active = (wireless_current_mode() != WIRELESS_MODE_DISABLED);
+
+  if (!radio_active && time_till_next >= ACTIVE_SLEEP_MIN_MS && !usb_host_active()) {
     uint8_t level_a = gpio_get_level((gpio_num_t)ROTARY_ENC_PIN_A);
     uint8_t level_b = gpio_get_level((gpio_num_t)ROTARY_ENC_PIN_B);
     gpio_wakeup_enable((gpio_num_t)ROTARY_ENC_PIN_A, level_a ? GPIO_INTR_LOW_LEVEL : GPIO_INTR_HIGH_LEVEL);
