@@ -21,6 +21,7 @@ static lv_obj_t *label_networks_empty    = NULL;
 /* ---------- scan screen widgets ---------- */
 static lv_obj_t *scan_list_container = NULL;
 static lv_obj_t *label_scan_hint     = NULL;
+static lv_timer_t *scan_poll_timer   = NULL;
 
 /* ---------- password screen widgets ---------- */
 static lv_obj_t *label_password_ssid = NULL;
@@ -410,9 +411,27 @@ static void build_wifi_scan_screen(void)
     lv_obj_align(label_scan_hint, LV_ALIGN_CENTER, 0, 0);
 }
 
+static void scan_poll_cb(lv_timer_t *t)
+{
+    (void)t;
+    if (lv_scr_act() != screen_wifi_scan) {
+        /* User navigated away — pause the poll until they return. */
+        if (scan_poll_timer) lv_timer_pause(scan_poll_timer);
+        return;
+    }
+    refresh_wifi_scan_ui();
+    /* Once the scan has results (or failed and returned 0), stop polling. */
+    if (!wifi_scan_in_progress() && scan_poll_timer)
+        lv_timer_pause(scan_poll_timer);
+}
+
 void open_wifi_scan_screen(void)
 {
     refresh_wifi_scan_ui();
+    if (scan_poll_timer == NULL)
+        scan_poll_timer = lv_timer_create(scan_poll_cb, 500, NULL);
+    else
+        lv_timer_resume(scan_poll_timer);
     load_screen_if_needed(screen_wifi_scan);
 }
 
