@@ -18,6 +18,8 @@
 #include "damage_log.h"
 #include "game_mode.h"
 #include "rename.h"
+#include "ui_wireless.h"
+#include "wireless_manager.h"
 #include "mana.h"
 
 #include <stdio.h>
@@ -148,6 +150,12 @@ static void nav_color_picker(void) {
     player_color_index[menu_player] = 5;  /* show Orange as example */
     load_screen_if_needed(screen_player_color_picker);
 }
+static void nav_settings_page3(void) { lv_scr_load(screen_settings_page3); }
+static void nav_wireless_menu(void)    { open_wireless_menu_screen(); }
+static void nav_wifi_networks(void)    { open_wifi_networks_screen(); }
+static void nav_wifi_scan(void)        { open_wifi_scan_screen(); }
+static void nav_wifi_password(void)    { open_wifi_password_screen("KnobbyNet"); }
+static void nav_wireless_status(void)  { open_wireless_status_screen(); }
 static void nav_mana(void) { open_mana_screen(); }
 
 static const screen_entry_t all_screens[] = {
@@ -176,7 +184,13 @@ static const screen_entry_t all_screens[] = {
     {"counter-edit",  nav_counter_edit},
     {"color-menu",    nav_color_menu},
     {"color-picker",  nav_color_picker},
-    {"mana",          nav_mana},
+    {"settings-page3",   nav_settings_page3},
+    {"wireless-menu",    nav_wireless_menu},
+    {"wifi-networks",    nav_wifi_networks},
+    {"wifi-scan",        nav_wifi_scan},
+    {"wifi-password",    nav_wifi_password},
+    {"wireless-status",  nav_wireless_status},
+    {"mana",             nav_mana},
     {NULL, NULL}
 };
 
@@ -228,11 +242,19 @@ static void print_usage(void)
            "  --turn-number <n>      Turn number (enables timer display when > 0)\n"
            "  --turn-elapsed <ms>    Elapsed game time in milliseconds\n"
            "\n  --help, -h             Show this message\n"
+           "\nWireless (for wireless-* / wifi-* screens):\n"
+           "  --wireless-mode <disabled|wifi>  Set wireless mode before rendering\n"
+           "  --wifi-net \"<ssid>:<password>\"  Add saved network (repeatable, max 5)\n"
+           "  --wifi-status <disc|connecting|connected|failed>  Fake connection state\n"
+           "  --wifi-ssid <name>              Override fake current-connected SSID\n"
+           "  --wifi-rssi <n>                 Override fake signal strength (dBm)\n"
            "\nAvailable screens:\n"
            "  main 1p 2p 3p 4p intro menu tools settings-menu settings-more\n"
            "  brightness battery dice damage-log game-mode custom-life select\n"
            "  damage player-menu rename all-damage counters-menu counter-edit\n"
-           "  color-menu color-picker mana\n");
+           "  color-menu color-picker mana\n"
+           "  settings-page3 wireless-menu wifi-networks wifi-scan wifi-password\n"
+           "  wireless-status\n");
 }
 
 /* ---- CSV helpers ---- */
@@ -329,6 +351,13 @@ int main(int argc, char *argv[])
     int turn_number_set = 0;
     uint32_t turn_elapsed_val = 0;
     int turn_elapsed_set = 0;
+
+    /* Wireless */
+    wireless_mode_t wireless_mode_arg = WIRELESS_MODE_DISABLED;
+    int wireless_mode_set = 0;
+    wifi_net_t wifi_nets_arg[WIFI_NET_COUNT] = {0};
+    int wifi_nets_count = 0;
+
     int mana_vals[MANA_COLOR_COUNT] = {0};
     int mana_set = 0;
     int mana_sel_val = -1;
@@ -413,6 +442,37 @@ int main(int argc, char *argv[])
         } else if (strcmp(argv[i], "--turn-elapsed") == 0 && i + 1 < argc) {
             turn_elapsed_val = (uint32_t)atol(argv[++i]);
             turn_elapsed_set = 1;
+        } else if (strcmp(argv[i], "--wireless-mode") == 0 && i + 1 < argc) {
+            const char *v = argv[++i];
+            if      (strcmp(v, "disabled") == 0) { wireless_mode_arg = WIRELESS_MODE_DISABLED; wireless_mode_set = 1; }
+            else if (strcmp(v, "wifi") == 0)     { wireless_mode_arg = WIRELESS_MODE_WIFI;     wireless_mode_set = 1; }
+            else { fprintf(stderr, "Unknown wireless mode: %s\n", v); return 1; }
+        } else if (strcmp(argv[i], "--wifi-net") == 0 && i + 1 < argc) {
+            /* "ssid:password" — if no colon, whole arg is SSID (open network). */
+            const char *v = argv[++i];
+            const char *colon = strchr(v, ':');
+            if (wifi_nets_count < WIFI_NET_COUNT) {
+                wifi_net_t *n = &wifi_nets_arg[wifi_nets_count++];
+                if (colon) {
+                    size_t slen = (size_t)(colon - v);
+                    if (slen >= WIFI_SSID_LEN) slen = WIFI_SSID_LEN - 1;
+                    memcpy(n->ssid, v, slen); n->ssid[slen] = '\0';
+                    snprintf(n->password, sizeof(n->password), "%s", colon + 1);
+                } else {
+                    snprintf(n->ssid, sizeof(n->ssid), "%s", v);
+                }
+            }
+        } else if (strcmp(argv[i], "--wifi-status") == 0 && i + 1 < argc) {
+            const char *v = argv[++i];
+            if      (strcmp(v, "disc") == 0)       sim_wifi_fake_status = 0;
+            else if (strcmp(v, "connecting") == 0) sim_wifi_fake_status = 1;
+            else if (strcmp(v, "connected") == 0)  sim_wifi_fake_status = 2;
+            else if (strcmp(v, "failed") == 0)     sim_wifi_fake_status = 3;
+            else { fprintf(stderr, "Unknown wifi status: %s\n", v); return 1; }
+        } else if (strcmp(argv[i], "--wifi-ssid") == 0 && i + 1 < argc) {
+            sim_wifi_fake_ssid = argv[++i];
+        } else if (strcmp(argv[i], "--wifi-rssi") == 0 && i + 1 < argc) {
+            sim_wifi_fake_rssi = (int8_t)atoi(argv[++i]);
         } else if (strcmp(argv[i], "--mana") == 0 && i + 1 < argc) {
             parse_csv_ints(argv[++i], mana_vals, MANA_COLOR_COUNT);
             mana_set = 1;
@@ -436,6 +496,14 @@ int main(int argc, char *argv[])
         }
     }
 
+    /* Pre-populate wifi_nets blob before NVS init (if any --wifi-net flags given) */
+    if (wifi_nets_count > 0) {
+        wifi_net_t arr[WIFI_NET_COUNT] = {0};
+        int n = wifi_nets_count < WIFI_NET_COUNT ? wifi_nets_count : WIFI_NET_COUNT;
+        for (int k = 0; k < n; k++) arr[k] = wifi_nets_arg[k];
+        sim_nvs_preset_blob("wifi_nets", arr, sizeof(arr));
+    }
+
     /* Initialize */
     board_detect();
     lv_init();
@@ -448,6 +516,11 @@ int main(int argc, char *argv[])
     lv_disp_drv_register(&disp_drv);
 
     knob_gui();
+
+    /* Apply wireless mode after knob_gui() so the manager sees the loaded MRU */
+    if (wireless_mode_set) {
+        wireless_set_mode(wireless_mode_arg);
+    }
 
     /* Apply RAM-only overrides after navigation */
     #define APPLY_RAM_OVERRIDES() do { \

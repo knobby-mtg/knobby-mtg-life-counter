@@ -315,6 +315,40 @@ shot "mana_preview_max.png" --screen mana --mana 0,0,0,0,0,0 --mana-selected 0 -
 shot "mana_preview_clamp.png" --screen mana --mana 3,0,0,0,0,0 --mana-selected 0 --mana-delta -99
 
 # ============================================================
+# 22. Wireless screens (Issue #11, Phase 1)
+# ============================================================
+# Settings page 3 (holds the Wireless entry)
+shot "settings_page3.png" --screen settings-page3
+
+# Wireless menu — all three visible states of the quad greying
+shot "wireless_menu_disabled.png" --screen wireless-menu
+shot "wireless_menu_wifi_idle.png" --screen wireless-menu --wireless-mode wifi
+shot "wireless_menu_wifi_connected.png" --screen wireless-menu \
+    --wireless-mode wifi --wifi-net "MyNet:pw" --wifi-status connected
+
+# Saved-networks list (empty vs populated)
+shot "wifi_networks_empty.png" --screen wifi-networks --wireless-mode wifi
+shot "wifi_networks_populated.png" --screen wifi-networks \
+    --wireless-mode wifi \
+    --wifi-net "HomeWifi:homepw" --wifi-net "Cafe:beans" --wifi-net "Work:corp1234" \
+    --wifi-status connected --wifi-ssid "HomeWifi"
+
+# Scan list (fake APs from sim stubs)
+shot "wifi_scan.png" --screen wifi-scan --wireless-mode wifi
+
+# Password entry (textarea + keyboard)
+shot "wifi_password.png" --screen wifi-password --wireless-mode wifi
+
+# Status in each of the four non-Inactive states
+shot "wireless_status_idle.png" --screen wireless-status --wireless-mode wifi
+shot "wireless_status_connecting.png" --screen wireless-status \
+    --wireless-mode wifi --wifi-net "MyNet:pw" --wifi-status connecting
+shot "wireless_status_connected.png" --screen wireless-status \
+    --wireless-mode wifi --wifi-net "MyNet:pw" --wifi-status connected --wifi-ssid "MyNet"
+shot "wireless_status_failed.png" --screen wireless-status \
+    --wireless-mode wifi --wifi-net "BadNet:pw" --wifi-status failed
+
+# ============================================================
 # Generate index.html
 # ============================================================
 INDEX="$OUT/index.html"
@@ -360,6 +394,7 @@ SEC_1P_PREV=(); SEC_2P_PREV=(); SEC_3P_PREV=(); SEC_4P_PREV=()
 SEC_LIFE=(); SEC_LIFECOLOR=(); SEC_PERPLAYER=(); SEC_SELECTED=(); SEC_COUNTERS=()
 SEC_BRIGHT=(); SEC_COUNTER_EDIT=(); SEC_DAMAGE=(); SEC_SETTINGS=()
 SEC_TIMER=()
+SEC_WIRELESS=()
 SEC_MANA=()
 SEC_OTHER=()
 
@@ -379,6 +414,7 @@ for f in "${FILES[@]}"; do
         counter_edit_*)       SEC_COUNTER_EDIT+=("$f") ;;
         damage_*|select_*|all_damage_*) SEC_DAMAGE+=("$f") ;;
         settings_*)           SEC_SETTINGS+=("$f") ;;
+        wifi_*|wireless_*)    SEC_WIRELESS+=("$f") ;;
         mana_*)               SEC_MANA+=("$f") ;;
         *)                    SEC_OTHER+=("$f") ;;
     esac
@@ -399,6 +435,7 @@ write_section "Counter Edit" "${SEC_COUNTER_EDIT[@]}"
 write_section "Damage / Select" "${SEC_DAMAGE[@]}"
 write_section "Settings" "${SEC_SETTINGS[@]}"
 write_section "Mana Pool" "${SEC_MANA[@]}"
+write_section "Wireless" "${SEC_WIRELESS[@]}"
 write_section "Other" "${SEC_OTHER[@]}"
 
 echo '</body></html>' >> "$INDEX"

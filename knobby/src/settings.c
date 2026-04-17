@@ -7,6 +7,7 @@
 #include "damage_log.h"
 #include "rename.h"
 #include "game.h"
+#include "ui_wireless.h"
 #include "mana.h"
 
 // Forward declarations for cross-module calls
@@ -18,6 +19,7 @@ lv_obj_t *screen_quad_menu = NULL;
 lv_obj_t *screen_tools_menu = NULL;
 lv_obj_t *screen_screen_settings_menu = NULL;
 lv_obj_t *screen_settings_page2 = NULL;
+lv_obj_t *screen_settings_page3 = NULL;
 lv_obj_t *screen_settings = NULL;
 lv_obj_t *screen_battery = NULL;
 
@@ -317,6 +319,18 @@ static void event_screen_more(lv_event_t *e)
     lv_scr_load(screen_settings_page2);
 }
 
+static void event_screen_more_page3(lv_event_t *e)
+{
+    (void)e;
+    lv_scr_load(screen_settings_page3);
+}
+
+static void event_screen_wireless(lv_event_t *e)
+{
+    (void)e;
+    open_wireless_menu_screen();
+}
+
 static void event_screen_battery(lv_event_t *e)
 {
     (void)e;
@@ -386,7 +400,7 @@ void build_quad_menus(void)
         {color_mode_label(nvs_get_color_mode()), event_screen_color_mode, true, LV_EVENT_CLICKED},
         {deselect_label(nvs_get_deselect_timeout()), event_screen_deselect, true, LV_EVENT_CLICKED},
         {orientation_mode_label(nvs_get_orientation()), event_screen_orientation, true, LV_EVENT_CLICKED},
-        {auto_eliminate_label(nvs_get_auto_eliminate()), event_screen_auto_eliminate, true, LV_EVENT_CLICKED},
+        {"More",                              event_screen_more_page3, true, LV_EVENT_CLICKED},
     };
     build_quad_screen(&screen_settings_page2, page2_items);
 
@@ -402,7 +416,15 @@ void build_quad_menus(void)
     label_orientation_quad = lv_obj_get_child(btn_orientation, 0);
     set_btn_color(btn_orientation, orientation_color(nvs_get_orientation()));
 
-    btn_auto_eliminate = lv_obj_get_child(screen_settings_page2, 3);
+    quad_item_t page3_items[4] = {
+        {auto_eliminate_label(nvs_get_auto_eliminate()), event_screen_auto_eliminate, true, LV_EVENT_CLICKED},
+        {"Wireless",                          event_screen_wireless, true, LV_EVENT_CLICKED},
+        {"",                                  NULL, false, LV_EVENT_CLICKED},
+        {"",                                  NULL, false, LV_EVENT_CLICKED},
+    };
+    build_quad_screen(&screen_settings_page3, page3_items);
+
+    btn_auto_eliminate = lv_obj_get_child(screen_settings_page3, 0);
     label_auto_eliminate_quad = lv_obj_get_child(btn_auto_eliminate, 0);
     set_btn_color(btn_auto_eliminate, nvs_get_auto_eliminate() ? TOGGLE_ON : TOGGLE_OFF);
 }

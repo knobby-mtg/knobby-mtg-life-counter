@@ -33,4 +33,15 @@ void nvs_set_auto_eliminate(int value);
 void nvs_get_name_list(char (*out)[NAME_LIST_LEN]);
 void nvs_set_name_list(const char (*list)[NAME_LIST_LEN]);
 
+#define WIFI_NET_COUNT 5
+#define WIFI_SSID_LEN  33   /* 32 char SSID + null */
+#define WIFI_PASS_LEN  64   /* 63 char WPA2 password + null */
+typedef struct {
+    char ssid[WIFI_SSID_LEN];
+    char password[WIFI_PASS_LEN];
+} wifi_net_t;
+
+void nvs_get_wifi_nets(wifi_net_t out[WIFI_NET_COUNT]);
+void nvs_set_wifi_nets(const wifi_net_t in[WIFI_NET_COUNT]);
+
 #endif // _STORAGE_H

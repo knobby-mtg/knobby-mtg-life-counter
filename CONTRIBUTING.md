@@ -28,13 +28,15 @@ arduino-cli lib install esp-lib-utils@0.1.2
 **Compile:**
 ```bash
 arduino-cli compile \
-  --fqbn "esp32:esp32:esp32s3:FlashSize=16M,PSRAM=opi,USBMode=hwcdc,CDCOnBoot=cdc,FlashMode=qio" \
+  --fqbn "esp32:esp32:esp32s3:FlashSize=16M,PSRAM=opi,USBMode=hwcdc,CDCOnBoot=cdc,FlashMode=qio,PartitionScheme=custom" \
 ```
+
+The `PartitionScheme=custom` flag picks up `knobby/partitions.csv` (a copy of the Arduino core's `default_16MB` layout — 6.25MB APP / 3.43MB SPIFFS).
 
 **Flash** (replace {port} with your device's port from `arduino-cli board list`):
 ```bash
 arduino-cli upload \
-  --fqbn "esp32:esp32:esp32s3:FlashSize=16M,PSRAM=opi,USBMode=hwcdc,CDCOnBoot=cdc,FlashMode=qio" \
+  --fqbn "esp32:esp32:esp32s3:FlashSize=16M,PSRAM=opi,USBMode=hwcdc,CDCOnBoot=cdc,FlashMode=qio,PartitionScheme=custom" \
   -p {port} \
   knobby
 ```

@@ -60,7 +60,7 @@ void board_detect(void)
 
 #define NVS_MAX_ENTRIES 32
 #define NVS_KEY_LEN     16
-#define NVS_BLOB_MAX    256
+#define NVS_BLOB_MAX    1024
 
 typedef struct {
     char     key[NVS_KEY_LEN];
@@ -105,6 +105,15 @@ void sim_nvs_preset_i16(const char *key, int16_t value)
 {
     nvs_entry_t *e = nvs_find_or_create(key);
     if (e) { e->int_value = value; e->has_int = 1; }
+}
+
+void sim_nvs_preset_blob(const char *key, const void *data, uint32_t len)
+{
+    nvs_entry_t *e = nvs_find_or_create(key);
+    if (!e || len > NVS_BLOB_MAX) return;
+    memcpy(e->blob, data, len);
+    e->blob_len = len;
+    e->has_blob = 1;
 }
 
 /* NVS API stubs */
@@ -232,3 +241,67 @@ void scr_display_on(void) { /* no-op in simulator */ }
 /* ---- Random ---- */
 
 uint32_t esp_random(void) { return (uint32_t)rand(); }
+
+/* ---- Wireless backend (stubbed for screenshot simulator) ---- */
+
+#include "wireless_manager.h"
+
+/* Settable from sim_main.c via --wifi-* CLI flags */
+int         sim_wifi_fake_status     = 0;   /* 0=disc, 1=connecting, 2=connected, 3=failed */
+const char *sim_wifi_fake_ssid       = "KnobbyNet";
+int8_t      sim_wifi_fake_rssi       = -55;
+uint32_t    sim_wifi_fake_ip         = 0x6401A8C0;  /* 192.168.1.100 (Arduino IPAddress LE: bytes in order [192,168,1,100]) */
+
+/* Fake scan results rendered in the scan screen */
+static const struct { const char *ssid; int8_t rssi; int secured; } sim_scan[] = {
+    { "KnobbyNet",        -42, 1 },
+    { "xfinitywifi",      -58, 0 },
+    { "Neighbors 5G",     -63, 1 },
+    { "FBI_SURVEILLANCE", -71, 1 },
+    { "LinksysGuest",     -78, 0 },
+};
+#define SIM_SCAN_COUNT  (int)(sizeof(sim_scan) / sizeof(sim_scan[0]))
+
+void wireless_hw_wifi_on(void)  { /* no-op */ }
+void wireless_hw_wifi_off(void) { sim_wifi_fake_status = 0; }
+
+void wireless_hw_wifi_begin(const char *ssid, const char *password)
+{
+    (void)password;
+    sim_wifi_fake_ssid = ssid;
+    /* Leave fake_status alone so tests can stage pre/post states via flag */
+}
+
+void wireless_hw_wifi_disconnect(void) { sim_wifi_fake_status = 0; }
+
+int      wireless_hw_wifi_status(void)  { return sim_wifi_fake_status; }
+int8_t   wireless_hw_wifi_rssi(void)    { return sim_wifi_fake_rssi; }
+uint32_t wireless_hw_wifi_ip(void)      { return sim_wifi_fake_ip; }
+
+void wireless_hw_wifi_current_ssid(char *out, size_t n)
+{
+    if (!out || n == 0) return;
+    if (sim_wifi_fake_status == 2 && sim_wifi_fake_ssid) {
+        snprintf(out, n, "%s", sim_wifi_fake_ssid);
+    } else {
+        out[0] = '\0';
+    }
+}
+
+void wireless_hw_wifi_scan_start(void) { /* no-op: stub always "done" */ }
+int  wireless_hw_wifi_scan_check(void) { return SIM_SCAN_COUNT; }
+
+void wireless_hw_wifi_scan_result(int idx, char *ssid_out, size_t n,
+                                    int8_t *rssi_out, bool *secured_out)
+{
+    if (ssid_out && n > 0) ssid_out[0] = '\0';
+    if (rssi_out) *rssi_out = 0;
+    if (secured_out) *secured_out = false;
+    if (idx < 0 || idx >= SIM_SCAN_COUNT) return;
+
+    if (ssid_out && n > 0) snprintf(ssid_out, n, "%s", sim_scan[idx].ssid);
+    if (rssi_out) *rssi_out = sim_scan[idx].rssi;
+    if (secured_out) *secured_out = (sim_scan[idx].secured != 0);
+}
+
+void wireless_hw_wifi_scan_clear(void) { /* no-op */ }

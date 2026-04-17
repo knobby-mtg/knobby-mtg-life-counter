@@ -15,6 +15,7 @@ static int cached_players_to_track = 1;
 static int cached_life_total = DEFAULT_LIFE_TOTAL;
 static int cached_auto_eliminate = 1; /* 1=ON (default), 0=OFF */
 static char cached_name_list[NAME_LIST_COUNT][NAME_LIST_LEN];
+static wifi_net_t cached_wifi_nets[WIFI_NET_COUNT];
 
 // ---------- init ----------
 void knob_nvs_init(void)
@@ -64,6 +65,13 @@ void knob_nvs_init(void)
         nvs_get_blob(handle, "name_list", cached_name_list, &nl_size);
         for (int i = 0; i < NAME_LIST_COUNT; i++)
             cached_name_list[i][NAME_LIST_LEN - 1] = '\0';
+
+        size_t wn_size = sizeof(cached_wifi_nets);
+        nvs_get_blob(handle, "wifi_nets", cached_wifi_nets, &wn_size);
+        for (int i = 0; i < WIFI_NET_COUNT; i++) {
+            cached_wifi_nets[i].ssid[WIFI_SSID_LEN - 1] = '\0';
+            cached_wifi_nets[i].password[WIFI_PASS_LEN - 1] = '\0';
+        }
 
         nvs_close(handle);
     }
@@ -186,6 +194,18 @@ void nvs_set_name_list(const char (*list)[NAME_LIST_LEN])
     settings_dirty = true;
 }
 
+// ---------- wifi nets (MRU) ----------
+void nvs_get_wifi_nets(wifi_net_t out[WIFI_NET_COUNT])
+{
+    memcpy(out, cached_wifi_nets, sizeof(cached_wifi_nets));
+}
+
+void nvs_set_wifi_nets(const wifi_net_t in[WIFI_NET_COUNT])
+{
+    memcpy(cached_wifi_nets, in, sizeof(cached_wifi_nets));
+    settings_dirty = true;
+}
+
 // ---------- persist ----------
 void settings_save(void)
 {
@@ -202,6 +222,7 @@ void settings_save(void)
         nvs_set_i16(handle, "life_total", (int16_t)cached_life_total);
         nvs_set_i8(handle, "auto_elim", (int8_t)cached_auto_eliminate);
         nvs_set_blob(handle, "name_list", cached_name_list, sizeof(cached_name_list));
+        nvs_set_blob(handle, "wifi_nets", cached_wifi_nets, sizeof(cached_wifi_nets));
         nvs_commit(handle);
         nvs_close(handle);
         settings_dirty = false;
