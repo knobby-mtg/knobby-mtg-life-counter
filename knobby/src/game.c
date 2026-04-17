@@ -1,7 +1,7 @@
 #include "game.h"
 #include "storage.h"
 #include "damage_log.h"
-
+#include "esp_random.h"
 // Forward declarations for UI refresh (defined in screen modules)
 extern void refresh_player_ui(void);
 extern void refresh_select_ui(void);
@@ -612,4 +612,59 @@ void knob_life_init(void)
     if (life_preview_timer != NULL) {
         lv_timer_pause(life_preview_timer);
     }
+}
+
+// ---------- player selection animation ----------
+static lv_timer_t *player_select_anim_timer = NULL;
+static int player_select_anim_steps = 0;
+static int player_select_anim_period = 0;
+
+static void player_select_anim_cb(lv_timer_t *timer)
+{
+    int track = nvs_get_players_to_track();
+    (void)timer;
+
+    if (track <= 1) {
+        lv_timer_pause(player_select_anim_timer);
+        return;
+    }
+
+    // Move to next player (clockwise logic mapping to bottom/left/top/right)
+    selected_player = (selected_player + 1) % track;
+    refresh_player_ui();
+
+    player_select_anim_steps--;
+    if (player_select_anim_steps <= 0) {
+        lv_timer_pause(player_select_anim_timer);
+        select_kick_timer();
+    } else {
+        // Linear deceleration
+        player_select_anim_period += (200 / (player_select_anim_steps + 1));
+        if (player_select_anim_period > 600) player_select_anim_period = 600;
+        lv_timer_set_period(player_select_anim_timer, player_select_anim_period);
+    }
+}
+
+void start_player_selection_animation(void)
+{
+    int track = nvs_get_players_to_track();
+    int random_stops;
+
+    if (track <= 1) return;
+
+    if (player_select_anim_timer == NULL) {
+        player_select_anim_timer = lv_timer_create(player_select_anim_cb, 50, NULL);
+    }
+
+    // Randomize length to ensure random landing
+    random_stops = (int)(esp_random() % track) + (track * 3);
+    random_stops += esp_random() % (track * 2);
+
+    player_select_anim_steps = random_stops;
+    player_select_anim_period = 40; // start fast
+
+    if (selected_player < 0) selected_player = 0;
+
+    lv_timer_set_period(player_select_anim_timer, player_select_anim_period);
+    lv_timer_resume(player_select_anim_timer);
 }
