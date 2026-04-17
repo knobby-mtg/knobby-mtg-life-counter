@@ -12,6 +12,7 @@
 #include "src/game_mode.h"
 #include "src/damage_log.h"
 #include "src/rename.h"
+#include "src/ui_wireless.h"
 
 // ---------- swipe state ----------
 static lv_obj_t *previous_screen = NULL;
@@ -76,6 +77,18 @@ static void handle_back_navigation(lv_obj_t *screen)
         lv_scr_load(screen_quad_menu);
     } else if (screen == screen_settings_page2) {
         lv_scr_load(screen_screen_settings_menu);
+    } else if (screen == screen_settings_page3) {
+        lv_scr_load(screen_settings_page2);
+    } else if (screen == screen_wireless_menu) {
+        lv_scr_load(screen_settings_page3);
+    } else if (screen == screen_wifi_networks) {
+        open_wireless_menu_screen();
+    } else if (screen == screen_wifi_scan) {
+        open_wifi_networks_screen();
+    } else if (screen == screen_wifi_password) {
+        open_wifi_scan_screen();
+    } else if (screen == screen_wireless_status) {
+        open_wireless_menu_screen();
     } else if (screen == screen_settings) {
         lv_scr_load(screen_screen_settings_menu);
     } else if (screen == screen_battery) {
@@ -169,6 +182,7 @@ void knob_gui(void)
     build_quad_menus();
     build_game_mode_menu_screen();
     build_custom_life_screen();
+    build_wireless_screens();
 
     refresh_main_ui();
     refresh_multiplayer_ui();

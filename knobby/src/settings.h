@@ -8,6 +8,7 @@ extern lv_obj_t *screen_quad_menu;
 extern lv_obj_t *screen_tools_menu;
 extern lv_obj_t *screen_screen_settings_menu;
 extern lv_obj_t *screen_settings_page2;
+extern lv_obj_t *screen_settings_page3;
 extern lv_obj_t *screen_settings;
 extern lv_obj_t *screen_battery;
 
