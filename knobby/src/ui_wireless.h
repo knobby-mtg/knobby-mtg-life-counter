@@ -23,6 +23,11 @@ void open_wireless_status_screen(void);
 
 void refresh_wireless_status_ui(void);
 
+/* Apply a mode change that was staged via the Mode quadrant.
+ * Called from sub-screen openers and back-nav so the radio doesn't flip
+ * on every tap while the user is still cycling through modes. */
+void commit_pending_wireless_mode(void);
+
 #ifdef __cplusplus
 }
 #endif

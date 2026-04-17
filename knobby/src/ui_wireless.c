@@ -41,6 +41,12 @@ static lv_timer_t *status_refresh_timer = NULL;
 /* ---------- forward decls ---------- */
 static void rebuild_wireless_menu(void);
 
+/* Pending mode: staged by the Mode quadrant; committed when the user
+ * navigates into a sub-screen or backs out of the wireless menu. Avoids
+ * thrashing the radio while the user is still cycling through choices. */
+static wireless_mode_t pending_mode = WIRELESS_MODE_DISABLED;
+static bool pending_initialized = false;
+
 /* ---------- helpers ---------- */
 static const char *state_label(wireless_state_t s)
 {
@@ -114,16 +120,31 @@ static lv_obj_t *make_list_row(lv_obj_t *parent, const char *primary, const char
  *  WIRELESS MENU (quad)
  * ============================================================ */
 
+void commit_pending_wireless_mode(void)
+{
+    if (!pending_initialized) return;
+    if (pending_mode != wireless_current_mode())
+        wireless_set_mode(pending_mode);
+}
+
 static void event_wireless_mode_cycle(lv_event_t *e)
 {
     (void)e;
-    wireless_cycle_mode();
+    /* Advance the pending mode to the next supported one; radio stays put. */
+    for (int i = 1; i < WIRELESS_MODE_COUNT; i++) {
+        wireless_mode_t next = (wireless_mode_t)((pending_mode + i) % WIRELESS_MODE_COUNT);
+        if (wireless_mode_supported(next)) {
+            pending_mode = next;
+            break;
+        }
+    }
     rebuild_wireless_menu();
 }
 
 static void event_open_network_config(lv_event_t *e)
 {
     (void)e;
+    commit_pending_wireless_mode();
     if (wireless_current_mode() == WIRELESS_MODE_WIFI)
         open_wifi_networks_screen();
 }
@@ -137,6 +158,7 @@ static void event_open_game_config(lv_event_t *e)
 static void event_open_status(lv_event_t *e)
 {
     (void)e;
+    commit_pending_wireless_mode();
     open_wireless_status_screen();
 }
 
@@ -146,14 +168,16 @@ static void rebuild_wireless_menu(void)
     bool is_currently_active = (lv_scr_act() == old);
 
     wireless_poll();
-    bool mode_active = wireless_current_mode() != WIRELESS_MODE_DISABLED;
+    bool mode_active = pending_mode != WIRELESS_MODE_DISABLED;
     /* Game Config is always greyed in Phase 1 — no implementation yet. Phase 2
      * will enable it once connected (state == CONNECTED). */
     bool game_config_enabled = false;
 
-    static char mode_buf[32];
-    snprintf(mode_buf, sizeof(mode_buf), "Mode:\n%s",
-             wireless_mode_label(wireless_current_mode()));
+    static char mode_buf[40];
+    bool pending_diff = pending_initialized && pending_mode != wireless_current_mode();
+    snprintf(mode_buf, sizeof(mode_buf), "Mode:\n%s%s",
+             wireless_mode_label(pending_mode),
+             pending_diff ? " *" : "");
 
     quad_item_t items[4] = {
         {mode_buf,          event_wireless_mode_cycle, true,               LV_EVENT_CLICKED, NULL, NULL},
@@ -171,6 +195,10 @@ static void rebuild_wireless_menu(void)
 
 void open_wireless_menu_screen(void)
 {
+    /* Reset pending to match live state whenever we (re)enter the menu,
+     * so abandoned changes don't re-apply on a later visit. */
+    pending_mode = wireless_current_mode();
+    pending_initialized = true;
     rebuild_wireless_menu();
     load_screen_if_needed(screen_wireless_menu);
 }
