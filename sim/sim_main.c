@@ -20,6 +20,7 @@
 #include "rename.h"
 #include "ui_wireless.h"
 #include "wireless_manager.h"
+#include "mana.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -155,6 +156,7 @@ static void nav_wifi_networks(void)    { open_wifi_networks_screen(); }
 static void nav_wifi_scan(void)        { open_wifi_scan_screen(); }
 static void nav_wifi_password(void)    { open_wifi_password_screen("KnobbyNet"); }
 static void nav_wireless_status(void)  { open_wireless_status_screen(); }
+static void nav_mana(void) { open_mana_screen(); }
 
 static const screen_entry_t all_screens[] = {
     {"main",          nav_main},
@@ -188,6 +190,7 @@ static const screen_entry_t all_screens[] = {
     {"wifi-scan",        nav_wifi_scan},
     {"wifi-password",    nav_wifi_password},
     {"wireless-status",  nav_wireless_status},
+    {"mana",             nav_mana},
     {NULL, NULL}
 };
 
@@ -231,6 +234,10 @@ static void print_usage(void)
            "  --battery-voltage <f>  Battery voltage for battery screen (default: 4.0)\n"
            "  --random-counters      Set all player counters to random values 0-99\n"
            "  --random-log           Populate event log with random entries\n"
+           "\nMana pool:\n"
+           "  --mana <W,U,B,R,G,C>  Set mana pool values (e.g. 3,1,0,2,0,5)\n"
+           "  --mana-selected <n>    Selected mana color, -1=none (default: -1)\n"
+           "  --mana-delta <n>       Pending mana delta for preview display (e.g. +5, -3)\n"
            "\nTimer state (1p only):\n"
            "  --turn-number <n>      Turn number (enables timer display when > 0)\n"
            "  --turn-elapsed <ms>    Elapsed game time in milliseconds\n"
@@ -245,6 +252,7 @@ static void print_usage(void)
            "  main 1p 2p 3p 4p intro menu tools settings-menu settings-more\n"
            "  brightness battery dice damage-log game-mode custom-life select\n"
            "  damage player-menu rename all-damage counters-menu counter-edit\n"
+           "  color-menu color-picker mana\n"
            "  settings-page3 wireless-menu wifi-networks wifi-scan wifi-password\n"
            "  wireless-status\n");
 }
@@ -350,6 +358,12 @@ int main(int argc, char *argv[])
     wifi_net_t wifi_nets_arg[WIFI_NET_COUNT] = {0};
     int wifi_nets_count = 0;
 
+    int mana_vals[MANA_COLOR_COUNT] = {0};
+    int mana_set = 0;
+    int mana_sel_val = -1;
+    int mana_sel_set = 0;
+    int mana_delta_val = 0;
+    int mana_delta_set = 0;
     int i;
 
     srand((unsigned int)time(NULL));
@@ -459,6 +473,15 @@ int main(int argc, char *argv[])
             sim_wifi_fake_ssid = argv[++i];
         } else if (strcmp(argv[i], "--wifi-rssi") == 0 && i + 1 < argc) {
             sim_wifi_fake_rssi = (int8_t)atoi(argv[++i]);
+        } else if (strcmp(argv[i], "--mana") == 0 && i + 1 < argc) {
+            parse_csv_ints(argv[++i], mana_vals, MANA_COLOR_COUNT);
+            mana_set = 1;
+        } else if (strcmp(argv[i], "--mana-selected") == 0 && i + 1 < argc) {
+            mana_sel_val = atoi(argv[++i]);
+            mana_sel_set = 1;
+        } else if (strcmp(argv[i], "--mana-delta") == 0 && i + 1 < argc) {
+            mana_delta_val = atoi(argv[++i]);
+            mana_delta_set = 1;
         } else if (strcmp(argv[i], "--outdir") == 0 && i + 1 < argc) {
             outdir = argv[++i];
         } else if (strcmp(argv[i], "--output") == 0 && i + 1 < argc) {
@@ -570,6 +593,16 @@ int main(int argc, char *argv[])
             else \
                 turn_elapsed_ms = 0; \
         } \
+        if (mana_set) { \
+            for (i = 0; i < MANA_COLOR_COUNT; i++) \
+                mana_values[i] = mana_vals[i]; \
+        } \
+        if (mana_sel_set) \
+            mana_set_selected(mana_sel_val); \
+        if (mana_delta_set && mana_sel_set && mana_sel_val >= 0) { \
+            for (int md = 0; md < (mana_delta_val > 0 ? mana_delta_val : -mana_delta_val); md++) \
+                change_mana_value(mana_delta_val > 0 ? 1 : -1); \
+        } \
         for (i = 0; i < MAX_DISPLAY_PLAYERS; i++) \
             check_player_elimination(i); \
         refresh_main_ui(); \
@@ -579,6 +612,7 @@ int main(int argc, char *argv[])
         refresh_damage_ui(); \
         refresh_settings_ui(); \
         refresh_battery_ui(); \
+        refresh_mana_ui(); \
     } while(0)
 
     {

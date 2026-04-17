@@ -47,7 +47,7 @@ KNOBBY_SRC_SRCS := $(addprefix $(KNOBBY)/src/, \
 	ui_1p.c ui_mp.c ui_player_menu.c settings.c \
 	intro.c timer.c game.c damage_log.c \
 	game_mode.c rename.c dice.c hw.c storage.c \
-	wireless_manager.c ui_wireless.c)
+	mana.c wireless_manager.c ui_wireless.c)
 
 # Sim files
 SIM_SRCS := sim_main.c sim_stubs.c
