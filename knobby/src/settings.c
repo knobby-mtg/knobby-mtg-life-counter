@@ -57,6 +57,7 @@ void build_quad_screen(lv_obj_t **screen, quad_item_t items[4])
     for (i = 0; i < 4; i++) {
         lv_obj_t *btn = lv_btn_create(*screen);
         lv_obj_remove_style_all(btn);
+        lv_obj_clear_flag(btn, LV_OBJ_FLAG_PRESS_LOCK);
         lv_obj_set_size(btn, 178, 178);
         lv_obj_set_style_radius(btn, 0, 0);
         lv_obj_set_pos(btn, qx[i], qy[i]);
