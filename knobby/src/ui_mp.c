@@ -531,6 +531,7 @@ void build_multiplayer_screen(void)
     for (i = 0; i < MULTIPLAYER_COUNT; i++) {
         multiplayer_quadrants[i] = lv_btn_create(screen_4p);
         lv_obj_remove_style_all(multiplayer_quadrants[i]);
+        lv_obj_clear_flag(multiplayer_quadrants[i], LV_OBJ_FLAG_PRESS_LOCK);
         lv_obj_set_style_bg_opa(multiplayer_quadrants[i], LV_OPA_COVER, 0);
         lv_obj_set_size(multiplayer_quadrants[i], 180, 180);
         lv_obj_set_pos(multiplayer_quadrants[i], quad_x[i], quad_y[i]);
@@ -590,6 +591,7 @@ void build_multiplayer_2p_screen(void)
         int p = panel_player[i];
         mp2_panels[i] = lv_btn_create(screen_2p);
         lv_obj_remove_style_all(mp2_panels[i]);
+        lv_obj_clear_flag(mp2_panels[i], LV_OBJ_FLAG_PRESS_LOCK);
         lv_obj_set_style_bg_opa(mp2_panels[i], LV_OPA_COVER, 0);
         lv_obj_set_size(mp2_panels[i], 360, 178);
         lv_obj_set_pos(mp2_panels[i], 0, panel_y[i]);
@@ -649,6 +651,7 @@ void build_multiplayer_3p_screen(void)
         int p = panel_player[i];
         mp3_panels[i] = lv_btn_create(screen_3p);
         lv_obj_remove_style_all(mp3_panels[i]);
+        lv_obj_clear_flag(mp3_panels[i], LV_OBJ_FLAG_PRESS_LOCK);
         lv_obj_set_style_bg_opa(mp3_panels[i], LV_OPA_COVER, 0);
         lv_obj_set_size(mp3_panels[i], panel_w[i], panel_h[i]);
         lv_obj_set_pos(mp3_panels[i], panel_x[i], panel_y[i]);
