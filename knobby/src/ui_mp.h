@@ -4,14 +4,11 @@
 #include "types.h"
 
 // ---------- screens ----------
-extern lv_obj_t *screen_4p;
-extern lv_obj_t *screen_2p;
-extern lv_obj_t *screen_3p;
+extern lv_obj_t *screen_multiplayer;
 
 // ---------- functions ----------
 void build_multiplayer_screen(void);
-void build_multiplayer_2p_screen(void);
-void build_multiplayer_3p_screen(void);
+void rebuild_multiplayer_layout(int track);
 
 void refresh_multiplayer_ui(void);
 

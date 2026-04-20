@@ -1,6 +1,7 @@
 #include "game_mode.h"
 #include "storage.h"
 #include "settings.h"
+#include "ui_mp.h"
 
 // Forward declarations
 extern void reset_all_values(void);
@@ -121,6 +122,7 @@ static void event_gm_apply(lv_event_t *e)
     nvs_set_life_total(temp_life_total);
     settings_save();
     reset_all_values();
+    rebuild_multiplayer_layout(temp_players_to_track);
     back_to_main();
 }
 

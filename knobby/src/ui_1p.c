@@ -6,9 +6,6 @@
 #include "timer.h"
 #include "storage.h"
 
-// Forward declarations for multiplayer routing
-extern lv_obj_t *screen_4p;
-
 // ---------- screens ----------
 lv_obj_t *screen_1p = NULL;
 lv_obj_t *screen_select = NULL;
@@ -292,12 +289,8 @@ void back_to_main(void)
     int track = nvs_get_players_to_track();
     cmd_damage_target = -1;
     if (track > 1) {
-        extern lv_obj_t *screen_2p;
-        extern lv_obj_t *screen_3p;
         refresh_multiplayer_ui();
-        if (track == 2) load_screen_if_needed(screen_2p);
-        else if (track == 3) load_screen_if_needed(screen_3p);
-        else load_screen_if_needed(screen_4p);
+        load_screen_if_needed(screen_multiplayer);
     } else {
         refresh_main_ui();
         load_screen_if_needed(screen_1p);
