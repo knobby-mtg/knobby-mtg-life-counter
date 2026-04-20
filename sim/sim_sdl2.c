@@ -46,17 +46,30 @@ static void update_sdl_display(void)
 {
     void *pixels;
     int pitch;
+    const int cx = SCREEN_W / 2;
+    const int cy = SCREEN_H / 2;
+    const int rr = (SCREEN_W / 2) * (SCREEN_W / 2);
+    const uint32_t bezel = 0xFF505050;
     SDL_LockTexture(texture, NULL, &pixels, &pitch);
-    
+
     uint32_t *p = (uint32_t *)pixels;
-    for (int i = 0; i < SCREEN_W * SCREEN_H; i++) {
-        lv_color_t c = framebuffer[i];
-        uint8_t r = (uint8_t)((c.ch.red * 255) / 31);
-        uint8_t g = (uint8_t)((c.ch.green * 255) / 63);
-        uint8_t b = (uint8_t)((c.ch.blue * 255) / 31);
-        p[i] = (0xFF << 24) | (r << 16) | (g << 8) | b;
+    for (int y = 0; y < SCREEN_H; y++) {
+        for (int x = 0; x < SCREEN_W; x++) {
+            int i = y * SCREEN_W + x;
+            int dx = x - cx;
+            int dy = y - cy;
+            if (dx * dx + dy * dy > rr) {
+                p[i] = bezel;
+            } else {
+                lv_color_t c = framebuffer[i];
+                uint8_t r = (uint8_t)((c.ch.red * 255) / 31);
+                uint8_t g = (uint8_t)((c.ch.green * 255) / 63);
+                uint8_t b = (uint8_t)((c.ch.blue * 255) / 31);
+                p[i] = (0xFF << 24) | (r << 16) | (g << 8) | b;
+            }
+        }
     }
-    
+
     SDL_UnlockTexture(texture);
     SDL_RenderClear(renderer);
     SDL_RenderCopy(renderer, texture, NULL, NULL);
