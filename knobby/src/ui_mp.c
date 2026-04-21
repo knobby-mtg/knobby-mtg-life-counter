@@ -4,35 +4,39 @@
 #include "game.h"
 #include "storage.h"
 
+#include <string.h>
+
 // ---------- screens ----------
-lv_obj_t *screen_4p = NULL;
-lv_obj_t *screen_2p = NULL;
-lv_obj_t *screen_3p = NULL;
+lv_obj_t *screen_multiplayer = NULL;
 
-// ---------- widgets ----------
-static lv_obj_t *multiplayer_quadrants[MULTIPLAYER_COUNT];
-static lv_obj_t *label_player_life[MULTIPLAYER_COUNT];
-static lv_obj_t *label_multiplayer_name[MULTIPLAYER_COUNT];
-static lv_obj_t *counter_row_4p[MULTIPLAYER_COUNT][COUNTER_TYPE_COUNT];
-static lv_obj_t *counter_value_4p[MULTIPLAYER_COUNT][COUNTER_TYPE_COUNT];
+// ---------- layout specs ----------
+typedef struct {
+    lv_coord_t x, y, w, h;
+    lv_coord_t nudge_x;     /* x offset for life/name labels in non-centric modes */
+    int player_index;       /* which player this panel displays */
+    int color_index;        /* color slot (differs from player only for 2p) */
+} mp_panel_spec_t;
 
-// ---------- 2-player widgets ----------
-static lv_obj_t *mp2_panels[2];
-static lv_obj_t *label_mp2_life[2];
-static lv_obj_t *label_mp2_name[2];
-static lv_obj_t *counter_row_2p[2][COUNTER_TYPE_COUNT];
-static lv_obj_t *counter_value_2p[2][COUNTER_TYPE_COUNT];
+typedef struct {
+    int panel_count;
+    const mp_panel_spec_t *panels;
+    int16_t (*angle_fn)(int orientation_mode, int panel_index);
+    bool switch_font_by_orientation;
+} mp_layout_spec_t;
 
-// ---------- selection auto-deselect ----------
+/* ---------- shared widget state ---------- */
+static struct {
+    lv_obj_t *panels[MULTIPLAYER_COUNT];
+    lv_obj_t *life_labels[MULTIPLAYER_COUNT];
+    lv_obj_t *name_labels[MULTIPLAYER_COUNT];
+    lv_obj_t *counter_rows[MULTIPLAYER_COUNT][COUNTER_TYPE_COUNT];
+    lv_obj_t *counter_values[MULTIPLAYER_COUNT][COUNTER_TYPE_COUNT];
+    const mp_layout_spec_t *layout;
+} mp_state;
+
 static lv_timer_t *select_timeout_timer = NULL;
 
-// ---------- 3-player widgets ----------
-static lv_obj_t *mp3_panels[3];
-static lv_obj_t *label_mp3_life[3];
-static lv_obj_t *label_mp3_name[3];
-static lv_obj_t *counter_row_3p[3][COUNTER_TYPE_COUNT];
-static lv_obj_t *counter_value_3p[3][COUNTER_TYPE_COUNT];
-
+/* ---------- small helpers ---------- */
 static const lv_font_t *get_counter_badge_font(const counter_definition_t *definition)
 {
     if (definition != NULL && definition->icon_text != NULL) {
@@ -92,7 +96,6 @@ static void create_counter_row(lv_obj_t *parent, counter_type_t type,
     *row_out = row;
 }
 
-// ---------- rotation helper ----------
 static void apply_label_rotation(lv_obj_t *life_lbl, lv_obj_t *name_lbl,
                                   int16_t angle, int life_pivot_y, int name_pivot_y)
 {
@@ -134,34 +137,6 @@ static void get_counter_equator_anchor(lv_obj_t *panel,
     *anchor_y = target_world_y - panel_center_y;
 }
 
-static int16_t get_4p_orientation_angle(int mode, int panel_index)
-{
-    static const int16_t angled_rot[MULTIPLAYER_COUNT] = {450, 1350, 2250, 3150};
-
-    switch (mode) {
-        case ORIENTATION_MODE_CENTRIC:
-            return angled_rot[panel_index];
-        case ORIENTATION_MODE_TABLETOP:
-            return (panel_index == 1 || panel_index == 2) ? 1800 : 0;
-        default:
-            return 0;
-    }
-}
-
-static int16_t get_3p_orientation_angle(int mode, int panel_index)
-{
-    static const int16_t angled_rot[3] = {1350, 2250, 0};
-
-    switch (mode) {
-        case ORIENTATION_MODE_CENTRIC:
-            return angled_rot[panel_index];
-        case ORIENTATION_MODE_TABLETOP:
-            return (panel_index < 2) ? 1800 : 0;
-        default:
-            return 0;
-    }
-}
-
 static int16_t get_counter_row_angle(int orientation_mode, lv_obj_t *panel, int16_t panel_angle)
 {
     if (orientation_mode == ORIENTATION_MODE_CENTRIC) {
@@ -182,7 +157,92 @@ static int16_t get_counter_row_angle(int orientation_mode, lv_obj_t *panel, int1
     return panel_angle;
 }
 
-// ---------- refresh helpers ----------
+/* ---------- per-mode angle functions ---------- */
+static int16_t get_2p_orientation_angle(int mode, int panel_index)
+{
+    if (mode == ORIENTATION_MODE_ABSOLUTE) return 0;
+    return (panel_index == 0) ? 1800 : 0;
+}
+
+static int16_t get_3p_orientation_angle(int mode, int panel_index)
+{
+    static const int16_t angled_rot[3] = {1350, 2250, 0};
+
+    switch (mode) {
+        case ORIENTATION_MODE_CENTRIC:
+            return angled_rot[panel_index];
+        case ORIENTATION_MODE_TABLETOP:
+            return (panel_index < 2) ? 1800 : 0;
+        default:
+            return 0;
+    }
+}
+
+static int16_t get_4p_orientation_angle(int mode, int panel_index)
+{
+    static const int16_t angled_rot[MULTIPLAYER_COUNT] = {450, 1350, 2250, 3150};
+
+    switch (mode) {
+        case ORIENTATION_MODE_CENTRIC:
+            return angled_rot[panel_index];
+        case ORIENTATION_MODE_TABLETOP:
+            return (panel_index == 1 || panel_index == 2) ? 1800 : 0;
+        default:
+            return 0;
+    }
+}
+
+/* ---------- per-mode panel specs ---------- */
+/* 2p: top = P2 (player 1), bottom = P1 (player 0). Colors intentionally swapped. */
+static const mp_panel_spec_t panels_2p[] = {
+    {0,   0, 360, 178, 0, 1, 0},
+    {0, 182, 360, 178, 0, 0, 1},
+};
+
+/* 3p: top-left = P2, top-right = P3, bottom = P1 */
+static const mp_panel_spec_t panels_3p[] = {
+    {0,   0, 180, 180,  10, 1, 1},
+    {180, 0, 180, 180, -10, 2, 2},
+    {0, 180, 360, 180,   0, 0, 0},
+};
+
+/* 4p: quadrants in order P1, P2, P3, P4 */
+static const mp_panel_spec_t panels_4p[] = {
+    {  0, 180, 180, 180,  10, 0, 0},
+    {  0,   0, 180, 180,  10, 1, 1},
+    {180,   0, 180, 180, -10, 2, 2},
+    {180, 180, 180, 180, -10, 3, 3},
+};
+
+static const mp_layout_spec_t layout_2p = {
+    .panel_count = 2,
+    .panels = panels_2p,
+    .angle_fn = get_2p_orientation_angle,
+    .switch_font_by_orientation = false,
+};
+
+static const mp_layout_spec_t layout_3p = {
+    .panel_count = 3,
+    .panels = panels_3p,
+    .angle_fn = get_3p_orientation_angle,
+    .switch_font_by_orientation = true,
+};
+
+static const mp_layout_spec_t layout_4p = {
+    .panel_count = 4,
+    .panels = panels_4p,
+    .angle_fn = get_4p_orientation_angle,
+    .switch_font_by_orientation = true,
+};
+
+static const mp_layout_spec_t *get_layout(int track)
+{
+    if (track == 2) return &layout_2p;
+    if (track == 3) return &layout_3p;
+    return &layout_4p;
+}
+
+/* ---------- per-panel refresh ---------- */
 static void refresh_counter_rows(lv_obj_t *panel, lv_obj_t **rows, lv_obj_t **value_labels,
                                  int player_index, lv_color_t text_color,
                                  int16_t panel_angle, int16_t row_angle)
@@ -223,7 +283,6 @@ static void refresh_counter_rows(lv_obj_t *panel, lv_obj_t **rows, lv_obj_t **va
         snprintf(buf, sizeof(buf), "%d", value);
         lv_label_set_text(value_labels[counter_type], buf);
         lv_obj_set_style_text_color(value_labels[counter_type], text_color, 0);
-        /* Also update the icon/glyph color (first child of the row) */
         {
             lv_obj_t *glyph = lv_obj_get_child(rows[counter_type], 0);
             if (glyph != NULL) {
@@ -278,7 +337,6 @@ static lv_color_t refresh_mp_panel(lv_obj_t *panel, lv_obj_t *life_lbl, lv_obj_t
                     else if (!color_is_light(bg_color) && !color_is_light(preview_c))
                         preview_c = lv_color_white();
                 } else {
-                    /* Life mode, or player has override: pick purely on bg contrast */
                     preview_c = color_is_light(bg_color) ? lv_color_black() : lv_color_white();
                 }
                 lv_obj_set_style_text_color(life_lbl, preview_c, 0);
@@ -305,139 +363,103 @@ static lv_color_t refresh_mp_panel(lv_obj_t *panel, lv_obj_t *life_lbl, lv_obj_t
     return text_color;
 }
 
-static void refresh_multiplayer_4p_ui(void)
-{
-    int orientation_mode = nvs_get_orientation();
-    int i;
-    int16_t angle;
-    int16_t counter_angle;
-    lv_color_t text_color;
-
-    /* X nudge toward screen center per quadrant (left panels +, right panels -) */
-    static const lv_coord_t center_nudge_x[MULTIPLAYER_COUNT] = {10, 10, -10, -10};
-
-    for (i = 0; i < MULTIPLAYER_COUNT; i++) {
-        lv_coord_t nx = (orientation_mode != ORIENTATION_MODE_CENTRIC) ? center_nudge_x[i] : 0;
-        angle = get_4p_orientation_angle(orientation_mode, i);
-        counter_angle = get_counter_row_angle(orientation_mode, multiplayer_quadrants[i], angle);
-        text_color = refresh_mp_panel(multiplayer_quadrants[i], label_player_life[i], label_multiplayer_name[i], i, i);
-        if (label_player_life[i] != NULL) {
-            lv_obj_clear_flag(label_player_life[i], LV_OBJ_FLAG_HIDDEN);
-            if (orientation_mode == ORIENTATION_MODE_CENTRIC) {
-                lv_obj_set_style_text_font(label_player_life[i], &lv_font_montserrat_bold_44, 0);
-            } else {
-                lv_obj_set_style_text_font(label_player_life[i], &lv_font_montserrat_bold_56, 0);
-            }
-            if (orientation_mode == ORIENTATION_MODE_CENTRIC) {
-                lv_obj_align(label_player_life[i], LV_ALIGN_CENTER, nx, -10);
-            } else {
-                lv_obj_align(label_player_life[i], LV_ALIGN_CENTER, nx, -12);
-            }
-        }
-        if (label_multiplayer_name[i] != NULL) {
-            lv_obj_clear_flag(label_multiplayer_name[i], LV_OBJ_FLAG_HIDDEN);
-            lv_obj_align(label_multiplayer_name[i], LV_ALIGN_CENTER, nx, 30);
-        }
-        if (orientation_mode == ORIENTATION_MODE_CENTRIC) {
-            apply_label_rotation(label_player_life[i], label_multiplayer_name[i],
-                angle, 10, -30);
-        } else {
-            apply_label_rotation(label_player_life[i], label_multiplayer_name[i],
-                angle, 12, -30);
-        }
-        refresh_counter_rows(multiplayer_quadrants[i], counter_row_4p[i], counter_value_4p[i], i, text_color, angle, counter_angle);
-    }
-}
-
-static void refresh_multiplayer_2p_ui(void)
-{
-    /* Panel 0 = top = P2 (player 1), Panel 1 = bottom = P1 (player 0) */
-    static const int panel_player[2] = {1, 0};
-    static const int panel_color[2]  = {0, 1};
-    int orientation_mode = nvs_get_orientation();
-    int i;
-    int16_t angle;
-    lv_color_t text_color;
-    for (i = 0; i < 2; i++) {
-        angle = (i == 0 && orientation_mode != ORIENTATION_MODE_ABSOLUTE) ? 1800 : 0;
-        text_color = refresh_mp_panel(mp2_panels[i], label_mp2_life[i], label_mp2_name[i],
-                         panel_player[i], panel_color[i]);
-        apply_label_rotation(label_mp2_life[i], label_mp2_name[i],
-            angle, 10, -30);
-        refresh_counter_rows(mp2_panels[i], counter_row_2p[i], counter_value_2p[i], panel_player[i],
-            text_color, angle, get_counter_row_angle(orientation_mode, mp2_panels[i], angle));
-    }
-}
-
-static void refresh_multiplayer_3p_ui(void)
-{
-    /* Panel 0 = top-left = P2 (player 1), Panel 1 = top-right = P3 (player 2), Panel 2 = bottom = P1 (player 0) */
-    static const int panel_player[3] = {1, 2, 0};
-    int orientation_mode = nvs_get_orientation();
-    int i;
-    int16_t angle;
-    int16_t counter_angle;
-    lv_color_t text_color;
-
-    /* X nudge: top-left panels right, top-right panels left, bottom panel centered */
-    static const lv_coord_t nudge_3p_x[3] = {10, -10, 0};
-
-    for (i = 0; i < 3; i++) {
-        lv_coord_t nx = (orientation_mode != ORIENTATION_MODE_CENTRIC) ? nudge_3p_x[i] : 0;
-        angle = get_3p_orientation_angle(orientation_mode, i);
-        counter_angle = get_counter_row_angle(orientation_mode, mp3_panels[i], angle);
-        text_color = refresh_mp_panel(mp3_panels[i], label_mp3_life[i], label_mp3_name[i],
-                         panel_player[i], panel_player[i]);
-        if (label_mp3_life[i] != NULL) {
-            if (orientation_mode == ORIENTATION_MODE_CENTRIC) {
-                lv_obj_set_style_text_font(label_mp3_life[i], &lv_font_montserrat_bold_44, 0);
-                lv_obj_align(label_mp3_life[i], LV_ALIGN_CENTER, nx, -10);
-            } else {
-                lv_obj_set_style_text_font(label_mp3_life[i], &lv_font_montserrat_bold_56, 0);
-                lv_obj_align(label_mp3_life[i], LV_ALIGN_CENTER, nx, -12);
-            }
-        }
-        if (label_mp3_name[i] != NULL)
-            lv_obj_align(label_mp3_name[i], LV_ALIGN_CENTER, nx, 30);
-        if (orientation_mode == ORIENTATION_MODE_CENTRIC) {
-            apply_label_rotation(label_mp3_life[i], label_mp3_name[i],
-                angle, 10, -30);
-        } else {
-            apply_label_rotation(label_mp3_life[i], label_mp3_name[i],
-                angle, 12, -30);
-        }
-        refresh_counter_rows(mp3_panels[i], counter_row_3p[i], counter_value_3p[i], panel_player[i], text_color, angle, counter_angle);
-    }
-}
-
-// ---------- refresh functions ----------
+/* ---------- unified refresh ---------- */
 void refresh_multiplayer_ui(void)
 {
-    int track = nvs_get_players_to_track();
-    if (track == 2) { refresh_multiplayer_2p_ui(); return; }
-    if (track == 3) { refresh_multiplayer_3p_ui(); return; }
-    refresh_multiplayer_4p_ui();
+    const mp_layout_spec_t *layout = mp_state.layout;
+    int orientation_mode;
+    int i;
+
+    if (layout == NULL) return;
+    orientation_mode = nvs_get_orientation();
+
+    for (i = 0; i < layout->panel_count; i++) {
+        const mp_panel_spec_t *spec = &layout->panels[i];
+        lv_obj_t *panel = mp_state.panels[i];
+        lv_obj_t *life_lbl = mp_state.life_labels[i];
+        lv_obj_t *name_lbl = mp_state.name_labels[i];
+        int16_t angle = layout->angle_fn(orientation_mode, i);
+        int16_t counter_angle = get_counter_row_angle(orientation_mode, panel, angle);
+        lv_coord_t nx = (orientation_mode != ORIENTATION_MODE_CENTRIC) ? spec->nudge_x : 0;
+        lv_color_t text_color;
+
+        text_color = refresh_mp_panel(panel, life_lbl, name_lbl,
+                                      spec->player_index, spec->color_index);
+
+        if (layout->switch_font_by_orientation) {
+            if (life_lbl != NULL) {
+                lv_obj_clear_flag(life_lbl, LV_OBJ_FLAG_HIDDEN);
+                if (orientation_mode == ORIENTATION_MODE_CENTRIC) {
+                    lv_obj_set_style_text_font(life_lbl, &lv_font_montserrat_bold_44, 0);
+                    lv_obj_align(life_lbl, LV_ALIGN_CENTER, nx, -10);
+                } else {
+                    lv_obj_set_style_text_font(life_lbl, &lv_font_montserrat_bold_56, 0);
+                    lv_obj_align(life_lbl, LV_ALIGN_CENTER, nx, -12);
+                }
+            }
+            if (name_lbl != NULL) {
+                lv_obj_clear_flag(name_lbl, LV_OBJ_FLAG_HIDDEN);
+                lv_obj_align(name_lbl, LV_ALIGN_CENTER, nx, 30);
+            }
+            if (orientation_mode == ORIENTATION_MODE_CENTRIC) {
+                apply_label_rotation(life_lbl, name_lbl, angle, 10, -30);
+            } else {
+                apply_label_rotation(life_lbl, name_lbl, angle, 12, -30);
+            }
+        } else {
+            apply_label_rotation(life_lbl, name_lbl, angle, 10, -30);
+        }
+
+        refresh_counter_rows(panel, mp_state.counter_rows[i], mp_state.counter_values[i],
+                             spec->player_index, text_color, angle, counter_angle);
+    }
 }
 
-// ---------- navigation ----------
-void open_multiplayer_screen(void)
+/* ---------- events ---------- */
+static void event_multiplayer_select(lv_event_t *e)
 {
-    int track = nvs_get_players_to_track();
+    int player = (int)(intptr_t)lv_event_get_user_data(e);
+
+    if (player < 0 || player >= MULTIPLAYER_COUNT) return;
+    if (player_eliminated[player]) return;
+
+    if (life_preview_active && preview_player != player) {
+        life_preview_commit_cb(NULL);
+    }
+
+    if (selected_player == player) {
+        if (life_preview_active && preview_player == player) {
+            life_preview_commit_cb(NULL);
+        }
+        selected_player = -1;
+    } else {
+        selected_player = player;
+    }
+    select_kick_timer();
     refresh_multiplayer_ui();
-    if (track == 2) load_screen_if_needed(screen_2p);
-    else if (track == 3) load_screen_if_needed(screen_3p);
-    else load_screen_if_needed(screen_4p);
 }
 
-// ---------- quadrant-to-player mapping ----------
-static int quad_to_player(int quad)
+static void event_multiplayer_open_menu(lv_event_t *e)
 {
-    int track = nvs_get_players_to_track();
-    if (quad >= track) return -1;
-    return quad;
+    int player = (int)(intptr_t)lv_event_get_user_data(e);
+
+    if (player < 0 || player >= MULTIPLAYER_COUNT) return;
+    if (player_eliminated[player]) {
+        menu_player = player;
+        load_screen_if_needed(screen_eliminated_player_menu);
+        return;
+    }
+
+    if (life_preview_active && preview_player != player) {
+        life_preview_commit_cb(NULL);
+    }
+
+    selected_player = player;
+    refresh_multiplayer_ui();
+    open_player_menu(selected_player);
 }
 
-// ---------- selection timeout ----------
+/* ---------- selection timeout ---------- */
 static void select_timeout_cb(lv_timer_t *timer)
 {
     (void)timer;
@@ -465,227 +487,84 @@ void select_kick_timer(void)
     }
 }
 
-// ---------- events ----------
-static void event_multiplayer_select(lv_event_t *e)
+/* ---------- layout rebuild ---------- */
+void rebuild_multiplayer_layout(int track)
 {
-    int quad = (int)(intptr_t)lv_event_get_user_data(e);
-    int player = quad_to_player(quad);
+    const mp_layout_spec_t *layout = get_layout(track);
+    int i;
 
-    if (player < 0) return;
-    if (player_eliminated[player]) return;
+    if (screen_multiplayer == NULL) return;
 
-    if (life_preview_active && preview_player != player) {
-        life_preview_commit_cb(NULL);
+    lv_obj_clean(screen_multiplayer);
+    memset(&mp_state, 0, sizeof(mp_state));
+    mp_state.layout = layout;
+
+    for (i = 0; i < layout->panel_count; i++) {
+        const mp_panel_spec_t *spec = &layout->panels[i];
+        int p = spec->player_index;
+        lv_obj_t *panel;
+        lv_obj_t *name_lbl;
+        lv_obj_t *life_lbl;
+
+        panel = lv_btn_create(screen_multiplayer);
+        lv_obj_remove_style_all(panel);
+        lv_obj_clear_flag(panel, LV_OBJ_FLAG_PRESS_LOCK);
+        lv_obj_set_style_bg_opa(panel, LV_OPA_COVER, 0);
+        lv_obj_set_size(panel, spec->w, spec->h);
+        lv_obj_set_pos(panel, spec->x, spec->y);
+        lv_obj_set_style_radius(panel, 0, 0);
+        lv_obj_set_style_border_width(panel, 1, 0);
+        lv_obj_set_style_border_color(panel, lv_color_black(), 0);
+        lv_obj_set_style_shadow_width(panel, 0, 0);
+        lv_obj_add_event_cb(panel, event_multiplayer_select, LV_EVENT_CLICKED, (void *)(intptr_t)p);
+        lv_obj_add_event_cb(panel, event_multiplayer_open_menu, LV_EVENT_LONG_PRESSED, (void *)(intptr_t)p);
+        mp_state.panels[i] = panel;
+
+        name_lbl = lv_label_create(panel);
+        lv_label_set_text(name_lbl, player_names[p]);
+        lv_obj_set_style_text_color(name_lbl, lv_color_white(), 0);
+        lv_obj_set_style_text_font(name_lbl, &lv_font_montserrat_22, 0);
+        lv_obj_align(name_lbl, LV_ALIGN_CENTER, 0, 30);
+        mp_state.name_labels[i] = name_lbl;
+
+        life_lbl = lv_label_create(panel);
+        lv_label_set_text(life_lbl, "40");
+        lv_obj_set_style_text_color(life_lbl, lv_color_white(), 0);
+        lv_obj_set_style_text_font(life_lbl, &lv_font_montserrat_bold_56, 0);
+        lv_obj_align(life_lbl, LV_ALIGN_CENTER, 0, -10);
+        mp_state.life_labels[i] = life_lbl;
+
+        create_counter_row(panel, COUNTER_TYPE_COMMANDER_TAX,
+            &mp_state.counter_rows[i][COUNTER_TYPE_COMMANDER_TAX],
+            &mp_state.counter_values[i][COUNTER_TYPE_COMMANDER_TAX], p);
+        create_counter_row(panel, COUNTER_TYPE_PARTNER_TAX,
+            &mp_state.counter_rows[i][COUNTER_TYPE_PARTNER_TAX],
+            &mp_state.counter_values[i][COUNTER_TYPE_PARTNER_TAX], p);
+        create_counter_row(panel, COUNTER_TYPE_POISON,
+            &mp_state.counter_rows[i][COUNTER_TYPE_POISON],
+            &mp_state.counter_values[i][COUNTER_TYPE_POISON], p);
+        create_counter_row(panel, COUNTER_TYPE_EXPERIENCE,
+            &mp_state.counter_rows[i][COUNTER_TYPE_EXPERIENCE],
+            &mp_state.counter_values[i][COUNTER_TYPE_EXPERIENCE], p);
     }
 
-    if (selected_player == player) {
-        /* Deselecting the same player: if there's an active preview for
-         * this player, commit it immediately so the altered life total is
-         * shown (same behavior as selecting another player). */
-        if (life_preview_active && preview_player == player) {
-            life_preview_commit_cb(NULL);
-        }
-        selected_player = -1;
-    } else {
-        selected_player = player;
-    }
-    select_kick_timer();
     refresh_multiplayer_ui();
 }
 
-static void event_multiplayer_open_menu(lv_event_t *e)
-{
-    int quad = (int)(intptr_t)lv_event_get_user_data(e);
-    int player = quad_to_player(quad);
-
-    if (player < 0) return;
-    if (player_eliminated[player]) {
-        menu_player = player;
-        load_screen_if_needed(screen_eliminated_player_menu);
-        return;
-    }
-
-    if (life_preview_active && preview_player != player) {
-        life_preview_commit_cb(NULL);
-    }
-
-    selected_player = player;
-    refresh_multiplayer_ui();
-    open_player_menu(selected_player);
-}
-
-// ---------- screen builders ----------
+/* ---------- screen lifecycle ---------- */
 void build_multiplayer_screen(void)
 {
-    static const char *player_names[MULTIPLAYER_COUNT] = {"P1", "P2", "P3", "P4"};
-    static const lv_coord_t quad_x[MULTIPLAYER_COUNT] = {0, 0, 180, 180};
-    static const lv_coord_t quad_y[MULTIPLAYER_COUNT] = {180, 0, 0, 180};
-    int i;
+    screen_multiplayer = lv_obj_create(NULL);
+    lv_obj_set_size(screen_multiplayer, 360, 360);
+    lv_obj_set_style_bg_color(screen_multiplayer, lv_color_black(), 0);
+    lv_obj_set_style_border_width(screen_multiplayer, 0, 0);
+    lv_obj_set_scrollbar_mode(screen_multiplayer, LV_SCROLLBAR_MODE_OFF);
 
-    screen_4p = lv_obj_create(NULL);
-    lv_obj_set_size(screen_4p, 360, 360);
-    lv_obj_set_style_bg_color(screen_4p, lv_color_black(), 0);
-    lv_obj_set_style_border_width(screen_4p, 0, 0);
-    lv_obj_set_scrollbar_mode(screen_4p, LV_SCROLLBAR_MODE_OFF);
+    rebuild_multiplayer_layout(nvs_get_players_to_track());
+}
 
-    for (i = 0; i < MULTIPLAYER_COUNT; i++) {
-        multiplayer_quadrants[i] = lv_btn_create(screen_4p);
-        lv_obj_remove_style_all(multiplayer_quadrants[i]);
-        lv_obj_clear_flag(multiplayer_quadrants[i], LV_OBJ_FLAG_PRESS_LOCK);
-        lv_obj_set_style_bg_opa(multiplayer_quadrants[i], LV_OPA_COVER, 0);
-        lv_obj_set_size(multiplayer_quadrants[i], 180, 180);
-        lv_obj_set_pos(multiplayer_quadrants[i], quad_x[i], quad_y[i]);
-        lv_obj_set_style_radius(multiplayer_quadrants[i], 0, 0);
-        lv_obj_set_style_border_width(multiplayer_quadrants[i], 1, 0);
-        lv_obj_set_style_border_color(multiplayer_quadrants[i], lv_color_black(), 0);
-        lv_obj_set_style_shadow_width(multiplayer_quadrants[i], 0, 0);
-        lv_obj_add_flag(multiplayer_quadrants[i], LV_OBJ_FLAG_EVENT_BUBBLE);
-        lv_obj_add_event_cb(multiplayer_quadrants[i], event_multiplayer_select, LV_EVENT_CLICKED, (void *)(intptr_t)i);
-        lv_obj_add_event_cb(multiplayer_quadrants[i], event_multiplayer_open_menu, LV_EVENT_LONG_PRESSED, (void *)(intptr_t)i);
-
-        label_multiplayer_name[i] = lv_label_create(multiplayer_quadrants[i]);
-        lv_label_set_text(label_multiplayer_name[i], player_names[i]);
-        lv_obj_set_style_text_color(label_multiplayer_name[i], lv_color_white(), 0);
-        lv_obj_set_style_text_font(label_multiplayer_name[i], &lv_font_montserrat_22, 0);
-        lv_obj_align(label_multiplayer_name[i], LV_ALIGN_CENTER, 0, 30);
-
-        label_player_life[i] = lv_label_create(multiplayer_quadrants[i]);
-        lv_label_set_text(label_player_life[i], "40");
-        lv_obj_set_style_text_color(label_player_life[i], lv_color_white(), 0);
-        lv_obj_set_style_text_font(label_player_life[i], &lv_font_montserrat_bold_56, 0);
-        lv_obj_align(label_player_life[i], LV_ALIGN_CENTER, 0, -30);
-
-        create_counter_row(multiplayer_quadrants[i], COUNTER_TYPE_COMMANDER_TAX,
-            &counter_row_4p[i][COUNTER_TYPE_COMMANDER_TAX],
-            &counter_value_4p[i][COUNTER_TYPE_COMMANDER_TAX], i);
-        create_counter_row(multiplayer_quadrants[i], COUNTER_TYPE_PARTNER_TAX,
-            &counter_row_4p[i][COUNTER_TYPE_PARTNER_TAX],
-            &counter_value_4p[i][COUNTER_TYPE_PARTNER_TAX], i);
-        create_counter_row(multiplayer_quadrants[i], COUNTER_TYPE_POISON,
-            &counter_row_4p[i][COUNTER_TYPE_POISON],
-            &counter_value_4p[i][COUNTER_TYPE_POISON], i);
-        create_counter_row(multiplayer_quadrants[i], COUNTER_TYPE_EXPERIENCE,
-            &counter_row_4p[i][COUNTER_TYPE_EXPERIENCE],
-            &counter_value_4p[i][COUNTER_TYPE_EXPERIENCE], i);
-
-    }
-
+void open_multiplayer_screen(void)
+{
     refresh_multiplayer_ui();
+    load_screen_if_needed(screen_multiplayer);
 }
-
-// ---------- 2-player screen (top/bottom split) ----------
-void build_multiplayer_2p_screen(void)
-{
-    /* Panel 0 = top = P2, Panel 1 = bottom = P1 */
-    static const lv_coord_t panel_y[2] = {0, 182};
-    static const int panel_player[2] = {1, 0};
-    int i;
-
-    screen_2p = lv_obj_create(NULL);
-    lv_obj_set_size(screen_2p, 360, 360);
-    lv_obj_set_style_bg_color(screen_2p, lv_color_black(), 0);
-    lv_obj_set_style_border_width(screen_2p, 0, 0);
-    lv_obj_set_scrollbar_mode(screen_2p, LV_SCROLLBAR_MODE_OFF);
-
-    for (i = 0; i < 2; i++) {
-        int p = panel_player[i];
-        mp2_panels[i] = lv_btn_create(screen_2p);
-        lv_obj_remove_style_all(mp2_panels[i]);
-        lv_obj_clear_flag(mp2_panels[i], LV_OBJ_FLAG_PRESS_LOCK);
-        lv_obj_set_style_bg_opa(mp2_panels[i], LV_OPA_COVER, 0);
-        lv_obj_set_size(mp2_panels[i], 360, 178);
-        lv_obj_set_pos(mp2_panels[i], 0, panel_y[i]);
-        lv_obj_set_style_radius(mp2_panels[i], 0, 0);
-        lv_obj_set_style_border_width(mp2_panels[i], 1, 0);
-        lv_obj_set_style_border_color(mp2_panels[i], lv_color_black(), 0);
-        lv_obj_set_style_shadow_width(mp2_panels[i], 0, 0);
-        lv_obj_add_event_cb(mp2_panels[i], event_multiplayer_select, LV_EVENT_CLICKED, (void *)(intptr_t)p);
-        lv_obj_add_event_cb(mp2_panels[i], event_multiplayer_open_menu, LV_EVENT_LONG_PRESSED, (void *)(intptr_t)p);
-
-        label_mp2_name[i] = lv_label_create(mp2_panels[i]);
-        lv_label_set_text(label_mp2_name[i], player_names[p]);
-        lv_obj_set_style_text_color(label_mp2_name[i], lv_color_white(), 0);
-        lv_obj_set_style_text_font(label_mp2_name[i], &lv_font_montserrat_22, 0);
-        lv_obj_align(label_mp2_name[i], LV_ALIGN_CENTER, 0, 30);
-
-        label_mp2_life[i] = lv_label_create(mp2_panels[i]);
-        lv_label_set_text(label_mp2_life[i], "40");
-        lv_obj_set_style_text_color(label_mp2_life[i], lv_color_white(), 0);
-        lv_obj_set_style_text_font(label_mp2_life[i], &lv_font_montserrat_bold_56, 0);
-        lv_obj_align(label_mp2_life[i], LV_ALIGN_CENTER, 0, -10);
-
-        create_counter_row(mp2_panels[i], COUNTER_TYPE_COMMANDER_TAX,
-            &counter_row_2p[i][COUNTER_TYPE_COMMANDER_TAX],
-            &counter_value_2p[i][COUNTER_TYPE_COMMANDER_TAX], p);
-        create_counter_row(mp2_panels[i], COUNTER_TYPE_PARTNER_TAX,
-            &counter_row_2p[i][COUNTER_TYPE_PARTNER_TAX],
-            &counter_value_2p[i][COUNTER_TYPE_PARTNER_TAX], p);
-        create_counter_row(mp2_panels[i], COUNTER_TYPE_POISON,
-            &counter_row_2p[i][COUNTER_TYPE_POISON],
-            &counter_value_2p[i][COUNTER_TYPE_POISON], p);
-        create_counter_row(mp2_panels[i], COUNTER_TYPE_EXPERIENCE,
-            &counter_row_2p[i][COUNTER_TYPE_EXPERIENCE],
-            &counter_value_2p[i][COUNTER_TYPE_EXPERIENCE], p);
-
-    }
-}
-
-// ---------- 3-player screen (two top quadrants + one full-width bottom panel) ----------
-void build_multiplayer_3p_screen(void)
-{
-    /* Panel 0 = top-left = P2, Panel 1 = top-right = P3, Panel 2 = bottom = P1 */
-    static const lv_coord_t panel_x[3] = {0,   180, 0};
-    static const lv_coord_t panel_y[3] = {0,   0,   180};
-    static const lv_coord_t panel_w[3] = {180, 180, 360};
-    static const lv_coord_t panel_h[3] = {180, 180, 180};
-    static const int panel_player[3]   = {1,   2,   0};
-    int i;
-
-    screen_3p = lv_obj_create(NULL);
-    lv_obj_set_size(screen_3p, 360, 360);
-    lv_obj_set_style_bg_color(screen_3p, lv_color_black(), 0);
-    lv_obj_set_style_border_width(screen_3p, 0, 0);
-    lv_obj_set_scrollbar_mode(screen_3p, LV_SCROLLBAR_MODE_OFF);
-
-    for (i = 0; i < 3; i++) {
-        int p = panel_player[i];
-        mp3_panels[i] = lv_btn_create(screen_3p);
-        lv_obj_remove_style_all(mp3_panels[i]);
-        lv_obj_clear_flag(mp3_panels[i], LV_OBJ_FLAG_PRESS_LOCK);
-        lv_obj_set_style_bg_opa(mp3_panels[i], LV_OPA_COVER, 0);
-        lv_obj_set_size(mp3_panels[i], panel_w[i], panel_h[i]);
-        lv_obj_set_pos(mp3_panels[i], panel_x[i], panel_y[i]);
-        lv_obj_set_style_radius(mp3_panels[i], 0, 0);
-        lv_obj_set_style_border_width(mp3_panels[i], 1, 0);
-        lv_obj_set_style_border_color(mp3_panels[i], lv_color_black(), 0);
-        lv_obj_set_style_shadow_width(mp3_panels[i], 0, 0);
-        lv_obj_add_event_cb(mp3_panels[i], event_multiplayer_select, LV_EVENT_CLICKED, (void *)(intptr_t)p);
-        lv_obj_add_event_cb(mp3_panels[i], event_multiplayer_open_menu, LV_EVENT_LONG_PRESSED, (void *)(intptr_t)p);
-
-        label_mp3_name[i] = lv_label_create(mp3_panels[i]);
-        lv_label_set_text(label_mp3_name[i], player_names[p]);
-        lv_obj_set_style_text_color(label_mp3_name[i], lv_color_white(), 0);
-        lv_obj_set_style_text_font(label_mp3_name[i], &lv_font_montserrat_22, 0);
-        lv_obj_align(label_mp3_name[i], LV_ALIGN_CENTER, 0, 30);
-
-        label_mp3_life[i] = lv_label_create(mp3_panels[i]);
-        lv_label_set_text(label_mp3_life[i], "40");
-        lv_obj_set_style_text_color(label_mp3_life[i], lv_color_white(), 0);
-        lv_obj_set_style_text_font(label_mp3_life[i], &lv_font_montserrat_bold_56, 0);
-        lv_obj_align(label_mp3_life[i], LV_ALIGN_CENTER, 0, -12);
-
-        create_counter_row(mp3_panels[i], COUNTER_TYPE_COMMANDER_TAX,
-            &counter_row_3p[i][COUNTER_TYPE_COMMANDER_TAX],
-            &counter_value_3p[i][COUNTER_TYPE_COMMANDER_TAX], p);
-        create_counter_row(mp3_panels[i], COUNTER_TYPE_PARTNER_TAX,
-            &counter_row_3p[i][COUNTER_TYPE_PARTNER_TAX],
-            &counter_value_3p[i][COUNTER_TYPE_PARTNER_TAX], p);
-        create_counter_row(mp3_panels[i], COUNTER_TYPE_POISON,
-            &counter_row_3p[i][COUNTER_TYPE_POISON],
-            &counter_value_3p[i][COUNTER_TYPE_POISON], p);
-        create_counter_row(mp3_panels[i], COUNTER_TYPE_EXPERIENCE,
-            &counter_row_3p[i][COUNTER_TYPE_EXPERIENCE],
-            &counter_value_3p[i][COUNTER_TYPE_EXPERIENCE], p);
-    }
-}
-

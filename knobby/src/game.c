@@ -465,6 +465,7 @@ void change_player_life(int delta)
     int track = nvs_get_players_to_track();
 
     if (selected_player < 0 || selected_player >= track) return;
+    if (player_eliminated[selected_player]) return;
 
     select_kick_timer();
 

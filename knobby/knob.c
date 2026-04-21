@@ -52,9 +52,7 @@ void knob_notify_swipe_right(void)
 static bool is_player_screen(lv_obj_t *screen)
 {
     return screen == screen_1p ||
-           screen == screen_2p ||
-           screen == screen_3p ||
-           screen == screen_4p;
+           screen == screen_multiplayer;
 }
 
 static void open_menu_for_screen(lv_obj_t *screen)
@@ -158,8 +156,6 @@ void knob_gui(void)
     build_dice_screen();
     build_main_screen();
     build_multiplayer_screen();
-    build_multiplayer_2p_screen();
-    build_multiplayer_3p_screen();
     build_player_menu_screen();
     build_eliminated_player_menu_screen();
     build_rename_screen();
@@ -220,9 +216,7 @@ static void handle_knob_event(knob_event_t k)
         else if (k == KNOB_RIGHT) change_brightness(+1);
         refresh_settings_ui();
     }
-    else if (lv_scr_act() == screen_4p ||
-             lv_scr_act() == screen_3p ||
-             lv_scr_act() == screen_2p)
+    else if (lv_scr_act() == screen_multiplayer)
     {
         if (k == KNOB_LEFT)      change_player_life(-1);
         else if (k == KNOB_RIGHT) change_player_life(+1);
