@@ -112,7 +112,7 @@ void check_player_elimination(int player)
             now_eliminated = true;
         } else {
             for (int i = 0; i < MAX_GAME_PLAYERS; i++) {
-                if (i != player && cmd_damage_totals[i][player] >= 20) {
+                if (i != player && cmd_damage_totals[i][player] >= 21) {
                     now_eliminated = true;
                     break;
                 }
@@ -445,7 +445,7 @@ void damage_apply(void)
     cmd_damage_totals[source][cmd_damage_target] = enemies[selected_enemy].damage;
     damage_log_add(cmd_damage_target, -delta, LOG_EVT_CMD_DAMAGE, source);
     player_life[cmd_damage_target] = clamp_life(player_life[cmd_damage_target] - delta);
-    if (cmd_damage_totals[source][cmd_damage_target] >= 20 || player_life[cmd_damage_target] <= 0) {
+    if (cmd_damage_totals[source][cmd_damage_target] >= 21 || player_life[cmd_damage_target] <= 0) {
         set_player_elimination_action(cmd_damage_target, LOG_EVT_CMD_DAMAGE, source, -delta);
     }
     check_player_elimination(cmd_damage_target);
