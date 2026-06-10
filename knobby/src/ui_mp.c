@@ -458,7 +458,11 @@ static void event_multiplayer_open_menu(lv_event_t *e)
     int player = (int)(intptr_t)lv_event_get_user_data(e);
 
     if (player < 0 || player >= MULTIPLAYER_COUNT) return;
-    if (selected_player >= 0) return;
+
+    /* A long-press is a deliberate gesture, so it always opens the
+       pressed player's menu (e.g. to apply commander damage), even when
+       another player is selected for life changes; the selection is left
+       untouched. */
     if (player_eliminated[player]) {
         menu_player = player;
         load_screen_if_needed(screen_eliminated_player_menu);
@@ -466,7 +470,7 @@ static void event_multiplayer_open_menu(lv_event_t *e)
         return;
     }
 
-    if (life_preview_active && preview_player != player) {
+    if (life_preview_active) {
         life_preview_commit_cb(NULL);
     }
 
