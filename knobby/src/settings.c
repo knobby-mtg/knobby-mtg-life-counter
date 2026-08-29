@@ -10,6 +10,7 @@
 #include "game.h"
 #include "mana.h"
 #include "net_sync.h"
+#include "ui_1p.h"
 #include "ui_mp.h"
 #include "ui_player_menu.h"
 
@@ -291,7 +292,10 @@ void change_display_rotation(int dir)
 }
 
 /* Player-scoped menu screens that should face the acting player when
-   menu facing is enabled. */
+   menu facing is enabled. screen_select/screen_damage are the commander
+   damage picker and editor: player-scoped in multiplayer (opened from the
+   player menu, which sets cmd_damage_target), and a no-op in 1-player
+   since mp_player_seat_rotation() returns 0 there. */
 static bool screen_is_player_menu(lv_obj_t *screen)
 {
     return screen == screen_player_menu ||
@@ -301,7 +305,9 @@ static bool screen_is_player_menu(lv_obj_t *screen)
            screen == screen_counter_edit ||
            screen == screen_player_color_menu ||
            screen == screen_player_color_picker ||
-           screen == screen_player_name;
+           screen == screen_player_name ||
+           screen == screen_select ||
+           screen == screen_damage;
 }
 
 /* Single applier for the effective display rotation: the user's physical

@@ -570,6 +570,17 @@ int main(int argc, char *argv[])
             if (counter_delta_set) change_counter_edit(counter_delta_val); \
             refresh_counter_edit_ui(); \
         } \
+        if (menu_player_set) { \
+            menu_player = menu_player_val; \
+            /* The live flow always enters the commander damage picker and \
+               editor via the player menu, which targets the acting player; \
+               mirror that so the enemy rows skip them (and so the menu \
+               faces them when menu facing is on). Runs before the \
+               --enemy-damage override, which seeds the rows explicitly. */ \
+            if (lv_scr_act() == screen_select || lv_scr_act() == screen_damage) \
+                prepare_cmd_damage_for_player(menu_player); \
+            menu_facing_refresh(); \
+        } \
         if (enemy_damage_set) { \
             for (i = 0; i < MAX_ENEMY_COUNT; i++) \
                 enemies[i].damage = enemy_damage_values[i]; \
@@ -582,10 +593,6 @@ int main(int argc, char *argv[])
         if (all_damage_set) { \
             all_damage_value = all_damage_val; \
             refresh_all_damage_ui(); \
-        } \
-        if (menu_player_set) { \
-            menu_player = menu_player_val; \
-            menu_facing_refresh(); \
         } \
         if (player_colors_set) { \
             for (i = 0; i < MAX_DISPLAY_PLAYERS; i++) \

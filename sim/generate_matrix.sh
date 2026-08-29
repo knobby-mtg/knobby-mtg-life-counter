@@ -300,6 +300,15 @@ shot "player_menu_facing_4p_centric_p2.png" --screen player-menu \
     --track 4 --orientation 1 --menu-facing 1 --menu-player 2
 shot "player_menu_facing_off_p1.png" --screen player-menu \
     --track 2 --orientation 2 --menu-facing 0 --menu-player 1
+shot "cmd_damage_select_facing_p1.png" --screen select \
+    --track 4 --players 4 --orientation 2 --menu-facing 1 --menu-player 1 \
+    --enemy-damage 5,12,3
+shot "cmd_damage_edit_facing_p1.png" --screen damage \
+    --track 4 --players 4 --orientation 2 --menu-facing 1 --menu-player 1 \
+    --enemy-damage 5,12,3
+shot "cmd_damage_select_facing_off_p1.png" --screen select \
+    --track 4 --players 4 --orientation 2 --menu-facing 0 --menu-player 1 \
+    --enemy-damage 5,12,3
 
 shot "setting_tablesync_off.png"    --screen table-sync --track 4
 shot "setting_tablesync_ingame.png" --screen table-sync --track 4 --table-sync 1 --table-session 14242

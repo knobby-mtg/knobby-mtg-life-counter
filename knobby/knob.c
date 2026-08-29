@@ -400,7 +400,7 @@ static void menu_facing_hook_screens(void)
         screen_player_menu, screen_eliminated_player_menu,
         screen_player_all_damage, screen_counter_menu, screen_counter_edit,
         screen_player_color_menu, screen_player_color_picker,
-        screen_player_name,
+        screen_player_name, screen_select, screen_damage,
     };
     size_t i;
 
