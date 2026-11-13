@@ -79,3 +79,7 @@ sim/knobby_web.wasm
 # Machine-specific config (use config.local.sh.example as template)
 config.local.sh
 emsdk/
+
+# The simulator's vendored SDL2 needs its MinGW import libraries to link
+!sim/SDL2/x86_64-w64-mingw32/lib/libSDL2.dll.a
+!sim/SDL2/x86_64-w64-mingw32/lib/libSDL2main.a

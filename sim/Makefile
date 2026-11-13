@@ -18,7 +18,7 @@ ifeq ($(OS),Windows_NT)
     BIN_GUI     := knobby_sim_gui.exe
     CC          ?= $(LLVM_BIN)/clang.exe
     SDL_CFLAGS  := -I$(SDL2_ROOT)/include
-    SDL_LDFLAGS := -L$(SDL2_ROOT)/lib -lSDL2main -lSDL2
+    SDL_LDFLAGS := -L$(SDL2_ROOT)/lib -lmingw32 -lSDL2main -lSDL2
 else
     BIN_GUI     := knobby_sim_gui
     CC          ?= gcc
